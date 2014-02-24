@@ -229,6 +229,16 @@
               file="Source/Audio/AudioComponent.h"/>
       </GROUP>
       <GROUP id="yQmqZWk" name="Processors">
+        <FILE id="CWQZEd" name="TTLTrigger.cpp" compile="1" resource="0" file="Source/Processors/TTLTrigger.cpp"/>
+        <FILE id="Sae3rC" name="TTLTrigger.h" compile="0" resource="0" file="Source/Processors/TTLTrigger.h"/>
+        <FILE id="tQekUF" name="RippleDetector.cpp" compile="1" resource="0"
+              file="Source/Processors/RippleDetector.cpp"/>
+        <FILE id="ZyCNX3" name="RippleDetector.h" compile="0" resource="0"
+              file="Source/Processors/RippleDetector.h"/>
+        <FILE id="cg7vVS" name="RippleDisplayNode.cpp" compile="1" resource="0"
+              file="Source/Processors/RippleDisplayNode.cpp"/>
+        <FILE id="jTUMe7" name="RippleDisplayNode.h" compile="0" resource="0"
+              file="Source/Processors/RippleDisplayNode.h"/>
         <FILE id="Yj1umv" name="SerialInput.cpp" compile="1" resource="0" file="Source/Processors/SerialInput.cpp"/>
         <FILE id="TSsuVv" name="SerialInput.h" compile="0" resource="0" file="Source/Processors/SerialInput.h"/>
         <FILE id="M6nCIs" name="FileReader.cpp" compile="1" resource="0" file="Source/Processors/FileReader.cpp"/>
@@ -297,6 +307,13 @@
           <FILE id="DXYynnz" name="Splitter.h" compile="0" resource="0" file="Source/Processors/Utilities/Splitter.h"/>
         </GROUP>
         <GROUP id="W4eqkOy" name="Visualization">
+          <FILE id="EudSmT" name="RippleDisplayCanvas.cpp" compile="1" resource="0"
+                file="Source/Processors/Visualization/RippleDisplayCanvas.cpp"/>
+          <FILE id="MmLWiF" name="RippleDisplayCanvas.h" compile="0" resource="0"
+                file="Source/Processors/Visualization/RippleDisplayCanvas.h"/>
+          <FILE id="iPNXnF" name="RippleObject.cpp" compile="1" resource="0"
+                file="Source/Processors/Visualization/RippleObject.cpp"/>
+          <FILE id="Kh834l" name="RippleObject.h" compile="0" resource="0" file="Source/Processors/Visualization/RippleObject.h"/>
           <FILE id="ajAJi" name="SpikeObject.cpp" compile="1" resource="0" file="Source/Processors/Visualization/SpikeObject.cpp"/>
           <FILE id="xqF5zL" name="SpikeObject.h" compile="0" resource="0" file="Source/Processors/Visualization/SpikeObject.h"/>
           <FILE id="jGEqDp" name="SpikeDisplayCanvas.cpp" compile="1" resource="0"
@@ -320,6 +337,14 @@
         <FILE id="hGnGAjh" name="EventNode.cpp" compile="1" resource="0" file="Source/Processors/EventNode.cpp"/>
         <FILE id="dUtRN6" name="EventNode.h" compile="0" resource="0" file="Source/Processors/EventNode.h"/>
         <GROUP id="AqvwO6w" name="Editors">
+          <FILE id="FozfUX" name="RippleDetectorEditor.cpp" compile="1" resource="0"
+                file="Source/Processors/Editors/RippleDetectorEditor.cpp"/>
+          <FILE id="Er7ZUJ" name="RippleDetectorEditor.h" compile="0" resource="0"
+                file="Source/Processors/Editors/RippleDetectorEditor.h"/>
+          <FILE id="skzqPG" name="RippleDisplayEditor.cpp" compile="1" resource="0"
+                file="Source/Processors/Editors/RippleDisplayEditor.cpp"/>
+          <FILE id="bFBKHt" name="RippleDisplayEditor.h" compile="0" resource="0"
+                file="Source/Processors/Editors/RippleDisplayEditor.h"/>
           <FILE id="jQo6Ff" name="LfpTriggeredAverageEditor.cpp" compile="1"
                 resource="0" file="Source/Processors/Editors/LfpTriggeredAverageEditor.cpp"/>
           <FILE id="RaQC38" name="LfpTriggeredAverageEditor.h" compile="0" resource="0"

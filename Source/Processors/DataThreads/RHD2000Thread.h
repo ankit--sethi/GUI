@@ -75,6 +75,8 @@ public:
     
     int setNoiseSlicerLevel(int level);
 
+    void setTTLPins(int ttlOutArray[]);
+    //void clearTTLPins();
     void scanPorts();
 
     int getNumEventChannels();

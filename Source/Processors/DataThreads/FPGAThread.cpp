@@ -456,7 +456,7 @@ void FPGAThread::checkTTLState()
 
 void FPGAThread::setOutputHigh()
 {
-    dev->SetWireInValue(0x01, 0x01); //, 0x06);
+    dev->SetWireInValue(0x15, 0xFF, 0xFF);
 
     dev->UpdateWireIns();
 
@@ -465,7 +465,7 @@ void FPGAThread::setOutputHigh()
 
 void FPGAThread::setOutputLow()
 {
-    dev->SetWireInValue(0x01, 0x00); //, 0x06);
+    dev->SetWireInValue(0x15, 0x00, 0xFF);
 
     dev->UpdateWireIns();
 }

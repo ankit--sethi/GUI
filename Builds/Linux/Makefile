@@ -63,6 +63,9 @@ OBJECTS := \
   $(OBJDIR)/RootFinder_239a995f.o \
   $(OBJDIR)/State_22979684.o \
   $(OBJDIR)/AudioComponent_521bd9c9.o \
+  $(OBJDIR)/TTLTrigger_f038cd5b.o \
+  $(OBJDIR)/RippleDetector_93430f45.o \
+  $(OBJDIR)/RippleDisplayNode_af6f768f.o \
   $(OBJDIR)/SerialInput_855a46b1.o \
   $(OBJDIR)/FileReader_18023b0e.o \
   $(OBJDIR)/ChannelMappingNode_d9219b9c.o \
@@ -84,6 +87,8 @@ OBJECTS := \
   $(OBJDIR)/RecordControl_3e1c6062.o \
   $(OBJDIR)/Merger_2f90542e.o \
   $(OBJDIR)/Splitter_6e27a57b.o \
+  $(OBJDIR)/RippleDisplayCanvas_4cce765a.o \
+  $(OBJDIR)/RippleObject_8d1c00e9.o \
   $(OBJDIR)/SpikeObject_24e8c655.o \
   $(OBJDIR)/SpikeDisplayCanvas_b208ff6e.o \
   $(OBJDIR)/DataWindow_83ce6754.o \
@@ -91,6 +96,8 @@ OBJECTS := \
   $(OBJDIR)/SpikeDetector_300d85e7.o \
   $(OBJDIR)/AudioNode_94606ff3.o \
   $(OBJDIR)/EventNode_95c842b7.o \
+  $(OBJDIR)/RippleDetectorEditor_374fe9bb.o \
+  $(OBJDIR)/RippleDisplayEditor_8a35cdf1.o \
   $(OBJDIR)/LfpTriggeredAverageEditor_101d75b.o \
   $(OBJDIR)/SerialInputEditor_c00f31f5.o \
   $(OBJDIR)/ElectrodeButtons_a6064cc.o \
@@ -285,6 +292,21 @@ $(OBJDIR)/AudioComponent_521bd9c9.o: ../../Source/Audio/AudioComponent.cpp
 	@echo "Compiling AudioComponent.cpp"
 	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
 
+$(OBJDIR)/TTLTrigger_f038cd5b.o: ../../Source/Processors/TTLTrigger.cpp
+	-@mkdir -p $(OBJDIR)
+	@echo "Compiling TTLTrigger.cpp"
+	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
+
+$(OBJDIR)/RippleDetector_93430f45.o: ../../Source/Processors/RippleDetector.cpp
+	-@mkdir -p $(OBJDIR)
+	@echo "Compiling RippleDetector.cpp"
+	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
+
+$(OBJDIR)/RippleDisplayNode_af6f768f.o: ../../Source/Processors/RippleDisplayNode.cpp
+	-@mkdir -p $(OBJDIR)
+	@echo "Compiling RippleDisplayNode.cpp"
+	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
+
 $(OBJDIR)/SerialInput_855a46b1.o: ../../Source/Processors/SerialInput.cpp
 	-@mkdir -p $(OBJDIR)
 	@echo "Compiling SerialInput.cpp"
@@ -390,6 +412,16 @@ $(OBJDIR)/Splitter_6e27a57b.o: ../../Source/Processors/Utilities/Splitter.cpp
 	@echo "Compiling Splitter.cpp"
 	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
 
+$(OBJDIR)/RippleDisplayCanvas_4cce765a.o: ../../Source/Processors/Visualization/RippleDisplayCanvas.cpp
+	-@mkdir -p $(OBJDIR)
+	@echo "Compiling RippleDisplayCanvas.cpp"
+	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
+
+$(OBJDIR)/RippleObject_8d1c00e9.o: ../../Source/Processors/Visualization/RippleObject.cpp
+	-@mkdir -p $(OBJDIR)
+	@echo "Compiling RippleObject.cpp"
+	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
+
 $(OBJDIR)/SpikeObject_24e8c655.o: ../../Source/Processors/Visualization/SpikeObject.cpp
 	-@mkdir -p $(OBJDIR)
 	@echo "Compiling SpikeObject.cpp"
@@ -423,6 +455,16 @@ $(OBJDIR)/AudioNode_94606ff3.o: ../../Source/Processors/AudioNode.cpp
 $(OBJDIR)/EventNode_95c842b7.o: ../../Source/Processors/EventNode.cpp
 	-@mkdir -p $(OBJDIR)
 	@echo "Compiling EventNode.cpp"
+	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
+
+$(OBJDIR)/RippleDetectorEditor_374fe9bb.o: ../../Source/Processors/Editors/RippleDetectorEditor.cpp
+	-@mkdir -p $(OBJDIR)
+	@echo "Compiling RippleDetectorEditor.cpp"
+	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
+
+$(OBJDIR)/RippleDisplayEditor_8a35cdf1.o: ../../Source/Processors/Editors/RippleDisplayEditor.cpp
+	-@mkdir -p $(OBJDIR)
+	@echo "Compiling RippleDisplayEditor.cpp"
 	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
 
 $(OBJDIR)/LfpTriggeredAverageEditor_101d75b.o: ../../Source/Processors/Editors/LfpTriggeredAverageEditor.cpp

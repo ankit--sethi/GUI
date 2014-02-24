@@ -58,9 +58,10 @@ AudioProcessorEditor* PulsePalOutput::createEditor()
 
 void PulsePalOutput::handleEvent(int eventType, MidiMessage& event, int sampleNum)
 {
-    if (eventType == TTL)
+
+    if (eventType == RIPPLE)
     {
-        //  std::cout << "Received an event!" << std::endl;
+        //std::cout << "Received an event!" << std::endl;
 
         const uint8* dataptr = event.getRawData();
 
@@ -73,6 +74,7 @@ void PulsePalOutput::handleEvent(int eventType, MidiMessage& event, int sampleNu
             if (eventId == 1 && eventChannel == channelTtlTrigger[i] && channelState[i])
             {
                 pulsePal.triggerChannel(i+1);
+                //std:: cout << "triggered" << std::endl;
             }
 
             if (eventChannel == channelTtlGate[i])

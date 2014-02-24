@@ -63,6 +63,7 @@ ProcessorList::ProcessorList()
     ProcessorListItem* filters = new ProcessorListItem("Filters");
     filters->addSubItem(new ProcessorListItem("Bandpass Filter"));
     filters->addSubItem(new ProcessorListItem("Spike Detector"));
+    filters->addSubItem(new ProcessorListItem("Ripple Detector"));
     //filters->addSubItem(new ProcessorListItem("Resampler"));
     filters->addSubItem(new ProcessorListItem("Phase Detector"));
     //filters->addSubItem(new ProcessorListItem("Digital Ref"));
@@ -74,12 +75,14 @@ ProcessorList::ProcessorList()
     sinks->addSubItem(new ProcessorListItem("LFP Viewer"));
     //sinks->addSubItem(new ProcessorListItem("LFP Trig. Avg."));
     sinks->addSubItem(new ProcessorListItem("Spike Viewer"));
+
 	//sinks->addSubItem(new ProcessorListItem("PSTH"));
 	//sinks->addSubItem(new ProcessorListItem("Network Sink"));
     //sinks->addSubItem(new ProcessorListItem("WiFi Output"));
     //sinks->addSubItem(new ProcessorListItem("Arduino Output"));
     // sinks->addSubItem(new ProcessorListItem("FPGA Output"));
     sinks->addSubItem(new ProcessorListItem("Pulse Pal"));
+    sinks->addSubItem(new ProcessorListItem("TTL Trigger"));
 
     ProcessorListItem* utilities = new ProcessorListItem("Utilities");
     utilities->addSubItem(new ProcessorListItem("Splitter"));

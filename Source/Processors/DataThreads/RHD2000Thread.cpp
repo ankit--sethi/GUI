@@ -174,6 +174,15 @@ bool RHD2000Thread::openBoard(String pathToLibrary)
     return deviceFound;
 
 }
+void RHD2000Thread::setTTLPins(int ttlOutArray[])
+{
+    evalBoard->setTtlOut(ttlOutArray);
+}
+/*void RHD2000Thread::clearTTLPins()
+{
+    evalBoard->clearTtlOut();
+}*/
+
 
 bool RHD2000Thread::uploadBitfile(String bitfilename)
 {

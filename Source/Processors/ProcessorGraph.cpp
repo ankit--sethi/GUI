@@ -40,6 +40,8 @@
 #include "SourceNode.h"
 #include "EventDetector.h"
 #include "SpikeDetector.h"
+#include "RippleDetector.h"
+#include "TTLTrigger.h"
 #include "PhaseDetector.h"
 #include "WiFiOutput.h"
 #include "FileReader.h"
@@ -547,6 +549,11 @@ GenericProcessor* ProcessorGraph::createProcessorFromDescription(String& descrip
             std::cout << "Creating a new spike detector." << std::endl;
             processor = new SpikeDetector();
         }
+        else if (subProcessorType.equalsIgnoreCase("Ripple Detector"))
+        {
+                std::cout << "Creating a new ripple detector." << std::endl;
+                processor = new RippleDetector();
+        }
         else if (subProcessorType.equalsIgnoreCase("Event Detector"))
         {
             std::cout << "Creating a new event detector." << std::endl;
@@ -632,6 +639,11 @@ GenericProcessor* ProcessorGraph::createProcessorFromDescription(String& descrip
         {
             std::cout << "Creating a Pulse Pal output node." << std::endl;
             processor = new PulsePalOutput();
+        }
+        else if (subProcessorType.equalsIgnoreCase("TTL Trigger"))
+        {
+            std::cout << "Creating a TTL Trigger output node." << std::endl;
+            processor = new TTLTrigger();
         }
 
         sendActionMessage("New sink created.");
