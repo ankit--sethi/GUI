@@ -43,6 +43,7 @@
 #include "RippleDetector.h"
 #include "TTLTrigger.h"
 #include "PhaseDetector.h"
+#include "ParameterEstimation.h"
 #include "WiFiOutput.h"
 #include "FileReader.h"
 #include "ArduinoOutput.h"
@@ -553,6 +554,12 @@ GenericProcessor* ProcessorGraph::createProcessorFromDescription(String& descrip
         {
                 std::cout << "Creating a new ripple detector." << std::endl;
                 processor = new RippleDetector();
+        }
+        else if (subProcessorType.equalsIgnoreCase("Parameter Estimator"))
+        {
+                std::cout << "Creating a new parameter estimator." << std::endl;
+                processor = new ParameterEstimator();
+                std::cout << "Creating a new parameter estimator 2." << std::endl;
         }
         else if (subProcessorType.equalsIgnoreCase("Event Detector"))
         {

@@ -63,6 +63,7 @@ OBJECTS := \
   $(OBJDIR)/RootFinder_239a995f.o \
   $(OBJDIR)/State_22979684.o \
   $(OBJDIR)/AudioComponent_521bd9c9.o \
+  $(OBJDIR)/ParameterEstimation_7065280f.o \
   $(OBJDIR)/TTLTrigger_f038cd5b.o \
   $(OBJDIR)/RippleDetector_93430f45.o \
   $(OBJDIR)/RippleDisplayNode_af6f768f.o \
@@ -96,6 +97,7 @@ OBJECTS := \
   $(OBJDIR)/SpikeDetector_300d85e7.o \
   $(OBJDIR)/AudioNode_94606ff3.o \
   $(OBJDIR)/EventNode_95c842b7.o \
+  $(OBJDIR)/ParameterEstimatorEditor_40d5fcbc.o \
   $(OBJDIR)/RippleDetectorEditor_374fe9bb.o \
   $(OBJDIR)/RippleDisplayEditor_8a35cdf1.o \
   $(OBJDIR)/LfpTriggeredAverageEditor_101d75b.o \
@@ -292,6 +294,11 @@ $(OBJDIR)/AudioComponent_521bd9c9.o: ../../Source/Audio/AudioComponent.cpp
 	@echo "Compiling AudioComponent.cpp"
 	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
 
+$(OBJDIR)/ParameterEstimation_7065280f.o: ../../Source/Processors/ParameterEstimation.cpp
+	-@mkdir -p $(OBJDIR)
+	@echo "Compiling ParameterEstimation.cpp"
+	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
+
 $(OBJDIR)/TTLTrigger_f038cd5b.o: ../../Source/Processors/TTLTrigger.cpp
 	-@mkdir -p $(OBJDIR)
 	@echo "Compiling TTLTrigger.cpp"
@@ -455,6 +462,11 @@ $(OBJDIR)/AudioNode_94606ff3.o: ../../Source/Processors/AudioNode.cpp
 $(OBJDIR)/EventNode_95c842b7.o: ../../Source/Processors/EventNode.cpp
 	-@mkdir -p $(OBJDIR)
 	@echo "Compiling EventNode.cpp"
+	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
+
+$(OBJDIR)/ParameterEstimatorEditor_40d5fcbc.o: ../../Source/Processors/Editors/ParameterEstimatorEditor.cpp
+	-@mkdir -p $(OBJDIR)
+	@echo "Compiling ParameterEstimatorEditor.cpp"
 	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
 
 $(OBJDIR)/RippleDetectorEditor_374fe9bb.o: ../../Source/Processors/Editors/RippleDetectorEditor.cpp

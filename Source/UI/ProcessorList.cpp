@@ -61,6 +61,7 @@ ProcessorList::ProcessorList()
     //sources->addSubItem(new ProcessorListItem("Event Generator"));
 
     ProcessorListItem* filters = new ProcessorListItem("Filters");
+    filters->addSubItem(new ProcessorListItem("Parameter Estimator"));
     filters->addSubItem(new ProcessorListItem("Bandpass Filter"));
     filters->addSubItem(new ProcessorListItem("Spike Detector"));
     filters->addSubItem(new ProcessorListItem("Ripple Detector"));

@@ -26,6 +26,9 @@
 #include <stdlib.h>
 #include "time.h"
 
+#define MIN(a,b)((a)<(b)?(a):(b))
+#define MAX(a,b)((a)<(b)?(b):(a))
+
 // Simple method for serializing a SpikeObject into a string of bytes
 int packSpike(const SpikeObject* s, uint8_t* buffer, int bufferSize)
 {
@@ -286,3 +289,41 @@ void printSpike(SpikeObject* s)
         std::cout<<s->data+i<<" ";
     std::cout<<std::endl;
 }
+
+
+float spikeDataBinToMicrovolts(SpikeObject *s, int bin, int ch)
+{
+    return  float(s->data[bin+ch*s->nSamples]-32768)/float(s->gain[ch])*1000.0f;
+}
+
+
+float spikeDataIndexToMicrovolts(SpikeObject *s, int index)
+{
+    return  float(s->data[index]-32768)/float(s->gain[index / s->nSamples])*1000.0f;
+}
+
+
+
+int microVoltsToSpikeDataBin(SpikeObject *s, float uV, int ch)
+{
+    return uV/1000.0f*float(s->gain[ch])+32768;
+}
+
+
+/*
+
+float spikeTimeBinToMicrosecond(SpikeObject *s, int bin, int ch)
+{
+    float spikeTimeSpan = 1.0f/s->samplingFrequencyHz * s->nSamples * 1e6;
+    return float(bin)/(s->nSamples-1) * spikeTimeSpan;
+}
+
+int microSecondsToSpikeTimeBin(SpikeObject *s, float t, int ch)
+{
+    // Lets say we have 32 samples per wave form
+
+    // t = 0 corresponds to the left most index.
+    float spikeTimeSpan = (1.0f/s->samplingFrequencyHz * s->nSamples)*1e6;
+    return MIN(s->nSamples-1, MAX(0,t/spikeTimeSpan * (s->nSamples-1)));
+}
+*/

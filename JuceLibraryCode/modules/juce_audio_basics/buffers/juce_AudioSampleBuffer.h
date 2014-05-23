@@ -140,6 +140,7 @@ public:
                           const int sampleOffset) const noexcept
     {
         jassert (isPositiveAndBelow (channelNumber, numChannels));
+        std::cout<<" Sample Offset is = "<<sampleOffset<<std::endl;
         jassert (isPositiveAndBelow (sampleOffset, size));
         return channels [channelNumber] + sampleOffset;
     }

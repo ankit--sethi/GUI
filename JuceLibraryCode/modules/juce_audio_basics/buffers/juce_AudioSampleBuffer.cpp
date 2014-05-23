@@ -145,6 +145,7 @@ void AudioSampleBuffer::setSize (const int newNumChannels,
                                  const bool clearExtraSpace,
                                  const bool avoidReallocating) noexcept
 {
+    //std::cout<<newNumChannels<< "  -  " <<newNumSamples;
     jassert (newNumChannels > 0);
     jassert (newNumSamples >= 0);
 

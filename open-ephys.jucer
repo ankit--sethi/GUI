@@ -229,6 +229,10 @@
               file="Source/Audio/AudioComponent.h"/>
       </GROUP>
       <GROUP id="yQmqZWk" name="Processors">
+        <FILE id="WRmTFi" name="ParameterEstimation.cpp" compile="1" resource="0"
+              file="Source/Processors/ParameterEstimation.cpp"/>
+        <FILE id="XIxsSw" name="ParameterEstimation.h" compile="0" resource="0"
+              file="Source/Processors/ParameterEstimation.h"/>
         <FILE id="CWQZEd" name="TTLTrigger.cpp" compile="1" resource="0" file="Source/Processors/TTLTrigger.cpp"/>
         <FILE id="Sae3rC" name="TTLTrigger.h" compile="0" resource="0" file="Source/Processors/TTLTrigger.h"/>
         <FILE id="tQekUF" name="RippleDetector.cpp" compile="1" resource="0"
@@ -337,6 +341,10 @@
         <FILE id="hGnGAjh" name="EventNode.cpp" compile="1" resource="0" file="Source/Processors/EventNode.cpp"/>
         <FILE id="dUtRN6" name="EventNode.h" compile="0" resource="0" file="Source/Processors/EventNode.h"/>
         <GROUP id="AqvwO6w" name="Editors">
+          <FILE id="gYy1W3" name="ParameterEstimatorEditor.cpp" compile="1" resource="0"
+                file="Source/Processors/Editors/ParameterEstimatorEditor.cpp"/>
+          <FILE id="n23P1H" name="ParameterEstimatorEditor.h" compile="0" resource="0"
+                file="Source/Processors/Editors/ParameterEstimatorEditor.h"/>
           <FILE id="FozfUX" name="RippleDetectorEditor.cpp" compile="1" resource="0"
                 file="Source/Processors/Editors/RippleDetectorEditor.cpp"/>
           <FILE id="Er7ZUJ" name="RippleDetectorEditor.h" compile="0" resource="0"

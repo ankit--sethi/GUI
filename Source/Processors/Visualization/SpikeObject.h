@@ -87,6 +87,14 @@ void makeBufferValid(uint8_t* buffer, int bufferLength);
   Additionally noise can be added to the waveform for help in diagnosing projection plots */
 void generateSimulatedSpike(SpikeObject* s, uint64_t timestamp, int noise);
 
+float spikeDataIndexToMicrovolts(SpikeObject *s, int index);
+
+float spikeDataBinToMicrovolts(SpikeObject *s, int bin, int ch = 0);
+int microVoltsToSpikeDataBin(SpikeObject *s, float uV, int ch = 0);
+/*float spikeTimeBinToMicrosecond(SpikeObject *s, int bin, int ch=0);
+int microSecondsToSpikeTimeBin(SpikeObject *s, float t, int ch=0);*/
+
+
 // Define the << operator for the SpikeObject
 // std::ostream& operator<<(std::ostream &strm, const SpikeObject s);
 
