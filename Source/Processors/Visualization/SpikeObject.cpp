@@ -78,6 +78,58 @@ int packSpike(const SpikeObject* s, uint8_t* buffer, int bufferSize)
 
 }
 
+int packSortedSpike(const SortedSpikeObject& s, uint8_t* buffer, int bufferSize)
+{
+
+    // This method should receive a SpikeObject filled with data,
+    // a pointer to a uint8_t buffer (which will hold the serialized SpikeObject,
+    // and a integer indicating the bufferSize.
+
+    //int reqBytes = 1 + 4 + 2 + 2 + 2 + 2 * s->nChannels * s->nSamples + 2 * s->nChannels * 2;
+
+    int idx = 0;
+    //std::cout << "oh nooooooooo";
+    memcpy(buffer+idx, &(s.eventType), 1);
+    idx += 1;
+
+    memcpy(buffer+idx, &(s.timestamp), 8);
+    idx += 8;
+
+    memcpy(buffer+idx, &(s.source), 2);
+    idx +=2;
+
+    memcpy(buffer+idx, &(s.nChannels), 2);
+    idx +=2;
+
+    memcpy(buffer+idx, &(s.nSamples), 2);
+    idx +=2;
+
+    memcpy(buffer+idx, &(s.data), s.nChannels * s.nSamples * 2);
+    idx += s.nChannels * s.nSamples * 2;
+
+    memcpy(buffer+idx, &(s.gain), s.nChannels * 2);
+    idx += s.nChannels * 2;
+
+    memcpy(buffer+idx, &(s.threshold), s.nChannels * 2);
+    idx += s.nChannels * 2;
+
+    memcpy(buffer+idx, &(s.neuronID), s.nChannels * 2);
+    idx += s.nChannels * 2;
+    std::cout << "//" << s.neuronID << "//";
+
+    if (idx >= MAX_SPIKE_BUFFER_LEN)
+    {
+        std::cout << "Spike is larger than it should be. Size was: " << idx
+                  << " Max size is: " << MAX_SPIKE_BUFFER_LEN << std::endl;
+
+    }
+
+    //makeBufferValid(buffer, idx);
+
+    return idx;
+
+}
+
 // Simple method for deserializing a string of bytes into a Spike object
 bool unpackSpike(SpikeObject* s, const uint8_t* buffer, int bufferSize)
 {
@@ -133,6 +185,73 @@ bool unpackSpike(SpikeObject* s, const uint8_t* buffer, int bufferSize)
 
     memcpy(&(s->threshold), buffer+idx, s->nChannels *2);
     idx += s->nChannels * 2;
+
+    //if (idx >= bufferSize)
+    //    std::cout << "Buffer Overrun! More data extracted than was given!" << std::endl;
+
+    return true;
+
+
+}
+
+bool unpackSortedSpike(SortedSpikeObject* s, const uint8_t* buffer, int bufferSize)
+{
+    //if (!isBufferValid(buffer, bufferSize))
+    // 	return false;
+
+    int idx = 0;
+
+    memcpy(&(s->eventType), buffer+idx, 1);
+    idx += 1;
+
+   // if (s->eventType != 4)
+   // {
+   //     std::cout << "received invalid spike -- incorrect event code" << std::endl;
+   //     return false;
+   // }
+
+    memcpy(&(s->timestamp), buffer+idx, 8);
+    idx += 8;
+
+    memcpy(&(s->source), buffer+idx, 2);
+    idx += 2;
+
+    if (s->source < 0 || s->source > 100)
+    {
+        std::cout << "received invalid spike -- incorrect source" << std::endl;
+        return false;
+    }
+
+    memcpy(&(s->nChannels), buffer+idx, 2);
+    idx +=2;
+
+    if (s->nChannels > 4)
+    {
+        std::cout << "received invalid spike -- incorrect number of channels" << std::endl;
+        return false;
+    }
+
+    memcpy(&(s->nSamples), buffer+idx, 2);
+    idx +=2;
+
+    if (s->nSamples > 100)
+    {
+        std::cout << "received invalid spike -- incorrect number of samples" << std::endl;
+        return false;
+    }
+
+    memcpy(&(s->data), buffer+idx, s->nChannels * s->nSamples * 2);
+    idx += s->nChannels * s->nSamples * 2;
+
+    memcpy(&(s->gain), buffer+idx, s->nChannels * 2);
+    idx += s->nChannels * 2;
+
+    memcpy(&(s->threshold), buffer+idx, s->nChannels *2);
+    idx += s->nChannels * 2;
+
+    memcpy(&(s->neuronID), buffer+idx, s->nChannels *2);
+    idx += s->nChannels * 2;
+
 
     //if (idx >= bufferSize)
     //    std::cout << "Buffer Overrun! More data extracted than was given!" << std::endl;
@@ -262,6 +381,28 @@ void generateEmptySpike(SpikeObject* s, int nChannels)
     s->source = 0;
     s->nChannels = 4;
     s->nSamples = 32;
+
+    int idx = 0;
+    for (int i=0; i<4; i++)
+    {
+        s->gain[i] = 0;
+        s->threshold[i] = 0;
+        for (int j=0; j<32; j++)
+        {
+            s->data[idx] = 0;
+            idx = idx+1;
+        }
+    }
+}
+void generateEmptySortedSpike(SortedSpikeObject* s, int nChannels)
+{
+
+    s->eventType = SPIKE_EVENT_CODE;
+    s->timestamp = 0;
+    s->source = 0;
+    s->nChannels = 4;
+    s->nSamples = 32;
+    s->neuronID = 0;
 
     int idx = 0;
     for (int i=0; i<4; i++)

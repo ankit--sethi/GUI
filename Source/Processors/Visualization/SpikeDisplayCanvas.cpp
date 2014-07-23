@@ -339,6 +339,10 @@ void SpikeDisplay::plotSpike(const SpikeObject& spike, int electrodeNum)
 {
     spikePlots[electrodeNum]->processSpikeObject(spike);
 }
+void SpikeDisplay::plotSpike(const SortedSpikeObject& spike, int electrodeNum)
+{
+    spikePlots[electrodeNum]->processSortedSpikeObject(spike);
+}
 
 void SpikeDisplay::registerThresholdCoordinator(SpikeThresholdCoordinator *stc)
 {
@@ -448,6 +452,35 @@ void SpikePlot::processSpikeObject(const SpikeObject& s)
 
     // if (aboveThreshold)
     // {
+        for (int i = 0; i < nWaveAx; i++)
+            wAxes[i]->updateSpikeData(s);
+
+        for (int i = 0; i < nProjAx; i++)
+            pAxes[i]->updateSpikeData(s);
+    // }
+
+    //     if (aboveThreshold && isRecording)
+    //     {
+    //         // write spike to disk
+    //       writeSpike(s);
+    //     }
+
+}
+void SpikePlot::processSortedSpikeObject(const SortedSpikeObject& s)
+{
+   // std::cout << "ElectrodePlot::processSpikeObject()" << std::endl;
+
+    // first, check if it's above threshold
+    // bool aboveThreshold = false;
+
+    // for (int i = 0; i < nWaveAx; i++)
+    // {
+    //     aboveThreshold = aboveThreshold | wAxes[i]->checkThreshold(s);
+    // }
+
+    // if (aboveThreshold)
+    // {
+
         for (int i = 0; i < nWaveAx; i++)
             wAxes[i]->updateSpikeData(s);
 
@@ -714,6 +747,13 @@ WaveAxes::WaveAxes(int channel) : GenericAxes(channel),
 
         spikeBuffer.add(so);
     }
+    for (int n = 0; n < bufferSize; n++)
+    {
+        SortedSpikeObject so;
+        generateEmptySortedSpike(&so, 4);
+
+        sortedSpikeBuffer.add(so);
+    }
 }
 
 void WaveAxes::setRange(float r)
@@ -755,13 +795,13 @@ void WaveAxes::paint(Graphics& g)
          if (spikeNum != spikeIndex)
          {
              g.setColour(Colours::grey);
-             plotSpike(spikeBuffer[spikeNum], g);
+             plotSpike(sortedSpikeBuffer[spikeNum], g);
          }
 
      }
 
     g.setColour(Colours::white);
-    plotSpike(spikeBuffer[spikeIndex], g);
+    plotSpike(sortedSpikeBuffer[spikeIndex], g);
 
 
     spikesReceivedSinceLastRedraw = 0;
@@ -775,6 +815,45 @@ void WaveAxes::plotSpike(const SpikeObject& s, Graphics& g)
 
     //compute the spatial width for each waveform sample
     float dx = getWidth()/float(spikeBuffer[0].nSamples);
+
+    // type corresponds to channel so we need to calculate the starting
+    // sample based upon which channel is getting plotted
+    int sampIdx = 40*type; //spikeBuffer[0].nSamples * type; //
+
+    int dSamples = 1;
+
+    float x = 0.0f;
+
+    for (int i = 0; i < s.nSamples-1; i++)
+    {
+        //std::cout << s.data[sampIdx] << std::endl;
+
+        if (*s.gain != 0)
+        {
+            float s1 = h/2 + float(s.data[sampIdx]-32768)/float(*s.gain)*1000.0f / range * h;
+            float s2 =  h/2 + float(s.data[sampIdx+1]-32768)/float(*s.gain)*1000.0f / range * h;
+
+            g.drawLine(x,
+                       s1,
+                       x+dx,
+                       s2);
+        }
+
+
+
+        sampIdx += dSamples;
+        x += dx;
+    }
+
+}
+
+void WaveAxes::plotSpike(const SortedSpikeObject& s, Graphics& g)
+{
+
+    float h = getHeight();
+
+    //compute the spatial width for each waveform sample
+    float dx = getWidth()/float(sortedSpikeBuffer[0].nSamples);
 
     // type corresponds to channel so we need to calculate the starting
     // sample based upon which channel is getting plotted
@@ -866,8 +945,50 @@ bool WaveAxes::updateSpikeData(const SpikeObject& s)
     return true;
 
 }
+bool WaveAxes::updateSpikeData(const SortedSpikeObject& s)
+{
+    if (!gotFirstSpike)
+    {
+        gotFirstSpike = true;
+    }
+
+    if (spikesReceivedSinceLastRedraw < bufferSize)
+    {
+
+        SortedSpikeObject newSpike = s;
+
+        spikeIndex++;
+        spikeIndex %= bufferSize;
+
+        sortedSpikeBuffer.set(spikeIndex, newSpike);
+
+        spikesReceivedSinceLastRedraw++;
+
+    }
+
+    return true;
+
+}
 
 bool WaveAxes::checkThreshold(const SpikeObject& s)
+{
+    int sampIdx = 40*type;
+
+    for (int i = 0; i < s.nSamples-1; i++)
+    {
+
+        if (float(s.data[sampIdx]-32768)/float(*s.gain)*1000.0f > displayThresholdLevel)
+        {
+            return true;
+        }
+
+        sampIdx++;
+    }
+
+    return false;
+
+}
+bool WaveAxes::checkThreshold(const SortedSpikeObject& s)
 {
     int sampIdx = 40*type;
 
@@ -890,6 +1011,7 @@ void WaveAxes::clear()
 {
 
     spikeBuffer.clear();
+    sortedSpikeBuffer.clear();
     spikeIndex = 0;
 
     for (int n = 0; n < bufferSize; n++)
@@ -898,6 +1020,13 @@ void WaveAxes::clear()
         generateEmptySpike(&so, 4);
 
         spikeBuffer.add(so);
+    }
+    for (int n = 0; n < bufferSize; n++)
+    {
+        SortedSpikeObject so;
+        generateEmptySortedSpike(&so, 4);
+
+        sortedSpikeBuffer.add(so);
     }
 
     repaint();
@@ -1068,6 +1197,23 @@ bool ProjectionAxes::updateSpikeData(const SpikeObject& s)
 
     return true;
 }
+bool ProjectionAxes::updateSpikeData(const SortedSpikeObject& s)
+{
+    if (!gotFirstSpike)
+    {
+        gotFirstSpike = true;
+    }
+
+    int idx1, idx2;
+    calcWaveformPeakIdx(s, ampDim1, ampDim2, &idx1, &idx2);
+
+    // add peaks to image
+    std::cout << "REACHED PROCESSSORTEDSPIKEOBJECT";
+
+    updateProjectionImage(s.data[idx1], s.data[idx2], *s.gain);
+
+    return true;
+}
 
 void ProjectionAxes::updateProjectionImage(uint16_t x, uint16_t y, uint16_t gain)
 {
@@ -1087,6 +1233,26 @@ void ProjectionAxes::updateProjectionImage(uint16_t x, uint16_t y, uint16_t gain
 }
 
 void ProjectionAxes::calcWaveformPeakIdx(const SpikeObject& s, int d1, int d2, int* idx1, int* idx2)
+{
+
+    int max1 = -1*pow(2.0,15);
+    int max2 = max1;
+
+    for (int i = 0; i < s.nSamples; i++)
+    {
+        if (s.data[d1*s.nSamples + i] > max1)
+        {
+            *idx1 = d1*s.nSamples+i;
+            max1 = s.data[*idx1];
+        }
+        if (s.data[d2*s.nSamples+i] > max2)
+        {
+            *idx2 = d2*s.nSamples+i;
+            max2 = s.data[*idx2];
+        }
+    }
+}
+void ProjectionAxes::calcWaveformPeakIdx(const SortedSpikeObject& s, int d1, int d2, int* idx1, int* idx2)
 {
 
     int max1 = -1*pow(2.0,15);
@@ -1189,6 +1355,17 @@ bool GenericAxes::updateSpikeData(const SpikeObject& newSpike)
     }
 
     s = newSpike;
+    return true;
+}
+
+bool GenericAxes::updateSpikeData(const SortedSpikeObject& newSpike)
+{
+    if (!gotFirstSpike)
+    {
+        gotFirstSpike = true;
+    }
+
+    ss = newSpike;
     return true;
 }
 

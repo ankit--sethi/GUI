@@ -78,6 +78,7 @@ public:
     void removeSpikePlots();
 
     bool checkThreshold(int, float, SpikeObject&);
+    bool checkThreshold(int, float, SortedSpikeObject&);
 
 private:
 
@@ -91,6 +92,7 @@ private:
         Array<float> detectorThresholds;
 
         Array<SpikeObject> mostRecentSpikes;
+        Array<SortedSpikeObject> mostRecentSortedSpikes;
         int currentSpikeIndex;
 
         SpikePlot* spikePlot;
@@ -108,6 +110,7 @@ private:
     void openFile(int index);
     void closeFile(int index);
     void writeSpike(const SpikeObject& s, int index);
+    void writeSortedSpike(const SortedSpikeObject& s, int index);
     String generateHeader(int index);
 
     // members for recording

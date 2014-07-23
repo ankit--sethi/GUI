@@ -35,6 +35,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <stdio.h>
 #include <algorithm>
 #include "ParameterEstimation.h"
+#include <fstream>
 
 #include "Channel.h"
 
@@ -52,6 +53,11 @@ ParameterEstimator::ParameterEstimator()
         {
         electrodeCounter.add(0);
         }
+        SVDmethod = true;
+        cssp = 0;
+        delta = 0;
+        sampleRate = 30000;
+        allParametersEstimated = false;
 
 }
 
@@ -284,9 +290,10 @@ StringArray ParameterEstimator::getElectrodeNames()
 
     return names;
 }
+
 SVDcomputingThread::SVDcomputingThread() : Thread("SVD")
 {
-
+    J.reportDone = false;
 }
 
 SVDjob::~SVDjob()
@@ -313,14 +320,23 @@ float ParameterEstimator::getNextSample(int& chan)
 {
 
 
+    if (sampleIndex < 0)
+    {
+        int ind = overflowBufferSize + sampleIndex;
 
-        if (sampleIndex < dataBuffer.getNumSamples())
-        {
-            //std::cout<<sampleIndex<<std::endl;
-            return *dataBuffer.getSampleData(chan, sampleIndex);
-        }
+        if (ind < overflowBuffer.getNumSamples())
+            return *overflowBuffer.getSampleData(chan, ind);
         else
             return 0;
+
+    }
+    else
+    {
+        if (sampleIndex < dataBuffer.getNumSamples())
+            return *dataBuffer.getSampleData(chan, sampleIndex);
+        else
+            return 0;
+    }
 
 }
 float ParameterEstimator::getCurrentSample(int& chan)
@@ -410,9 +426,11 @@ static int iminarg1,iminarg2;
 static double sqrarg;
 #define SQR(a) ((sqrarg = (a)) == 0.0 ? 0.0 : sqrarg * sqrarg)
 
-SVDjob::SVDjob(Array<SpikeObject> _spikes, bool _reportDone) : spikes(_spikes), reportDone(_reportDone)
+void SVDjob::SVDsetdim(Array<SpikeObject> _spikes, bool _reportDone)
 {
-    dim = spikes[0].nChannels*spikes[0].nSamples;
+    dim = _spikes[0].nChannels*_spikes[0].nSamples;
+    spikes = _spikes;
+    reportDone = _reportDone;
 }
 
 float SVDjob::pythag(float a, float b) {
@@ -623,13 +641,17 @@ void SVDcomputingThread::run()
 {
     while (jobs.size() > 0)
     {
-        SVDjob J = jobs.front();
+
+        J = jobs.front();
         jobs.pop();
 
 
         float **eigvec, *sigvalues, **U;
         sigvalues = new float[J.dim];
         eigvec = new float*[J.dim];
+        U = new float*[J.spikes.size()];
+
+
 
         for (int k=0;k<J.dim;k++) {
             eigvec[k] = new float[J.dim];
@@ -639,26 +661,39 @@ void SVDcomputingThread::run()
             }
         }
 
+
         for (int k = 0; k < J.spikes.size(); k++)
         {
+            U[k] = new float[J.dim];
             for (int j = 0; j < J.dim; j++)
             {
                 SpikeObject spike = J.spikes[k];
                 float v = spikeDataIndexToMicrovolts(&spike, j) ;
+
                 U[k][j] = v;
+
             }
         }
 
         J.svdcmp(U,J.spikes.size(),J.spikes[1].nSamples,sigvalues,eigvec);
 
+
         (J.reportDone) = true;
+
+        std::ofstream myfile ("Dictionary.txt");
 
         for (int k = 0; k < J.dim; k++)
         {
             for (int j = 0; j < J.dim; j++)
             {
+                myfile << eigvec[k][j];
                 J.dict.addnew(eigvec[k][j]);
+                if (j != J.dim - 1)
+                {
+                    myfile << ",";
+                }
             }
+            myfile << std::endl;
         }
         J.dict.setdim(J.dim,J.dim);
 
@@ -674,6 +709,9 @@ void SVDcomputingThread::run()
         delete U;
         delete sigvalues;
         delete eigvec;
+        std::cout<<"Finished the job"<<std::endl;
+        (J.reportDone) = true;
+
     }
 }
 void SVDcomputingThread::addSVDjob(SVDjob job)
@@ -682,6 +720,7 @@ void SVDcomputingThread::addSVDjob(SVDjob job)
     if (!isThreadRunning())
     {
         startThread();
+        //std::cout<<"Thread has started"<<std::endl;
     }
 }
 
@@ -697,7 +736,10 @@ void ParameterEstimator::handleEvent(int eventType, MidiMessage& event, int samp
 
 
 }
-
+float ParameterEstimator::getElectrodeNoiseVar(int index)
+{
+    return ((electrodes[index]->sigma)*(electrodes[index]->sigma));
+}
 
 void ParameterEstimator::process(AudioSampleBuffer& buffer,
                                MidiBuffer& events,
@@ -706,27 +748,24 @@ void ParameterEstimator::process(AudioSampleBuffer& buffer,
 
     Electrode* electrode;
     dataBuffer = buffer;
-    cssp = 0; delta = 0;
-    bool SVDmethod = true; // TBD if one needs only one SVD over all electrodes, or one per electrode
-    bool SVDPending = false; // this bool will be used to check if all parameters have been detected
+    // TBD if one needs only one SVD over all electrodes, or one per electrode
 
 
 
     checkForEvents(events);
 
     // this marks beginning of parameter detection --------------------------
-    for(int i = 0; i < electrodes.size(); i++)
+    for(int i = 0; i < 1; i++)//electrodes.size(); i++)
     {
         electrode = electrodes[i];
-        sampleIndex = electrode->lastBufferIndex -1;// subtract 1 to account for
+        sampleIndex = electrode->lastBufferIndex;// subtract 1 to account for
         // increment at start of getNextSample()
 
 
-       while (samplesAvailable(nSamples))
+        while (samplesAvailable(nSamples))
         {
             sampleIndex++;
-
-
+            electrode->paramAveragingCount++;
 
             for(int chan=0; chan < 1 ; chan++) //detecting on 1 channel only currently. to be expanded. CUSUM -> multichannel/distributed CUSUM
             {
@@ -735,94 +774,139 @@ void ParameterEstimator::process(AudioSampleBuffer& buffer,
 
                     int currentChannel = *(electrode->channels+chan);
 
-                    double var = getNextSample(currentChannel);
+                    double var = getCurrentSample(currentChannel);
+
+                    //std::cout<< var << std::endl;
+                    if (electrode->paramAveragingCount < sampleRate*3) //averaging for 30 s to find noise mu and sigma (needs to be changed to that each electrode gets its own noise measurement)
+                    {
+                        //electrode->paramAveragingCount++;
+                        delta = (var - electrode->mu);
+                        electrode->mu = electrode->mu + (delta/electrode->paramAveragingCount);
+                        electrode->sumOfSquaresOfDifferences = electrode->sumOfSquaresOfDifferences + delta*(var - electrode->mu);
 
 
-                        if (electrode->paramAveragingCount < 300000.0) //averaging for 30 s to find noise mu and sigma (needs to be changed to that each electrode gets its own noise measurement)
+                    }
+                    if (electrode->paramAveragingCount == int(sampleRate*3))
+                    {
+                        electrode->musqrd = (electrode->mu)*(electrode->mu);
+                        electrode->sigma = sqrt(electrode->sumOfSquaresOfDifferences/electrode->paramAveragingCount);
+                        std::cout<<"End of first 30 seconds" << std::endl;
+                        std::cout << "The mu and sigma for ripple detection are - " << electrode->mu << " and " << electrode->sigma << std::endl;
+                    }
+                    if (electrode->paramAveragingCount >= sampleRate*6 && electrode->paramAveragingCount < sampleRate*60) // START PRELIM SPIKE DETECTION
+                    {
+                        if (electrode->paramAveragingCount == (int)(sampleRate*6))
                         {
-                            electrode->paramAveragingCount++;
-                            delta = (var - electrode->mu);
-                            electrode->mu = electrode->mu + (delta/electrode->paramAveragingCount);
-                            electrode->sumOfSquaresOfDifferences = electrode->sumOfSquaresOfDifferences + delta*(var - electrode->mu);
-
-                            if (-var > *(electrode->thresholds+chan)) // trigger spike
-                            {
-
-                                //std::cout << "Spike detected on electrode " << i << std::endl;
-                                // find the peak
-                                int peakIndex = sampleIndex;
-
-                                while (-getCurrentSample(currentChannel) <
-                                       -getNextSample(currentChannel) &&
-                                       sampleIndex < peakIndex + electrode->postPeakSamples)
-                                {
-                                    sampleIndex++;
-                                }
-
-                                peakIndex = sampleIndex;
-                                sampleIndex -= (electrode->prePeakSamples+1);
-
-                                SpikeObject newSpike;
-                                newSpike.timestamp = peakIndex;
-                                newSpike.source = i;
-                                newSpike.nChannels = electrode->numChannels;
-
-                                currentIndex = 0;
-
-                                // package spikes;
-                                for (int channel = 0; channel < electrode->numChannels; channel++)
-                                {
-
-                                    addWaveformToSpikeObject(&newSpike,
-                                                             peakIndex,
-                                                             i,
-                                                             channel);
-                                }
-
-
-                                //add spikes to an array here
-                                if (SVDmethod == true)
-                                {//detectedSpikesAllElectrodes.add(newSpike);
-                                }
-                                else
-                                {//detectedSpikesPerElectrode[i].add(newSpike);
-                                }
-
-                                // advance the sample index
-                                sampleIndex = peakIndex + electrode->postPeakSamples;
-
-                                break; // quit spike "for" loop
-                            } // end spike trigger
-
-                            if (electrode->paramAveragingCount == 299999)
-                               {
-                                    electrode->musqrd = (electrode->mu)*(electrode->mu);
-                                    electrode->sigma = sqrt(electrode->sumOfSquaresOfDifferences/electrode->paramAveragingCount);
-                               }
-
-                        } // end of pilot T (currently = 30) seconds
-
-
-                        if (electrode->paramAveragingCount < 600000.0 && electrode->paramAveragingCount >= 300000.0)
-                        {
-                            electrode->paramAveragingCount++;
-                            double var0 = getCurrentSample(currentChannel);
-                            double renormratio = (electrode->paramAveragingCount)/(electrode->paramAveragingCount+1);
-
-                            cssp = cssp + renormratio*(var0*var - (electrode->mu)*(var0 + var) + electrode->musqrd);
-
-                            acfLag1 = cssp/electrode->sigma;
+                            std::cout<< "Starting spike detection." << std::endl;
                         }
+                        if (-var > 3*electrode->sigma) // trigger spike
+                        {
+
+                            //std::cout << "Spike detected on electrode " << i << std::endl;
+                            // find the peak
+                            int peakIndex = sampleIndex;
+
+                            while (-getCurrentSample(currentChannel) < -getNextSample(currentChannel) && sampleIndex < peakIndex + electrode->postPeakSamples)
+                            {
+                                sampleIndex++;
+                            }
+
+                            peakIndex = sampleIndex;
+                            sampleIndex -= (electrode->prePeakSamples+1);
+
+                            SpikeObject newSpike;
+                            newSpike.timestamp = peakIndex;
+                            newSpike.source = i;
+                            newSpike.nChannels = 1;  // HARDCODING TO 1
+
+                            currentIndex = 0;
+
+                            // package spikes;
+                            for (int channel = 0; channel < electrode->numChannels; channel++)
+                            {
+                                addWaveformToSpikeObject(&newSpike, peakIndex, i, channel);
+                            }
 
 
+                            //add spikes to an array here
+                            //if (SVDmethod == true)
+                            {
+                                detectedSpikesAllElectrodes.add(newSpike);
+                            }
+                            //else
+                            {
+                                //detectedSpikesPerElectrode[i].add(newSpike);
+                            }
 
+                            // advance the sample index
+                            sampleIndex = peakIndex + electrode->postPeakSamples;
+
+                            break; // quit spike "for" loop
+                        } // end spike trigger
+                        //std::cout << "Spike detected on electrode " << i << std::endl;
+                    }
+
+                    if (electrode->paramAveragingCount < sampleRate*6 && electrode->paramAveragingCount >= sampleRate*3)
+                    {
+                        double var0 = getNextSample(currentChannel);
+                        //double renormratio = (electrode->paramAveragingCount)/(electrode->paramAveragingCount+1);
+
+                        cssp = cssp + (var0*var - (electrode->mu)*(var0 + var) + electrode->musqrd);
+                    }
+                    if (electrode->paramAveragingCount == int(sampleRate*6))
+                    {
+                        acfLag1 = cssp/(electrode->sigma*electrode->sigma);
+                        acfLag1 = acfLag1/(sampleRate*6 - 2);
+                        std::cout << " The ACF LAG1 is - " << acfLag1 << std::endl;
+                    }
+                }
+            }
+        }
+        //this marks the ending of parameter detection -----------------------------
+
+        if (electrode->paramAveragingCount >= (sampleRate*60) && !allParametersEstimated)
+        {
+
+            if (SVDmethod) // starting the SVD Thread
+            {
+                std::cout << "Before starting the SVD, a total of " << detectedSpikesAllElectrodes.size() << "spikes have been detected and stored." << std::endl;
+                std::cout<<detectedSpikesAllElectrodes.size()<<" spikes objects stored"<<std::endl;
+                job.SVDsetdim(detectedSpikesAllElectrodes,false);
+                std::cout<<"job was created" << std::endl;
+                dictionaryThread.addSVDjob(job);
+                std::cout<<"job was done? " << job.reportDone <<std::endl;
+                SVDmethod = false;
+            }
+            if(!allParametersEstimated)
+            {
+
+                if(dictionaryThread.J.reportDone)
+                {
+                    dictionary.setdim(dictionaryThread.J.dict.getrowdim(), dictionaryThread.J.dict.getcoldim());
+                    for (int i = 0; i<dictionaryThread.J.dict.getrowdim(); i++)
+                    {
+                        for (int j = 0; j< dictionaryThread.J.dict.getcoldim(); j++)
+                        {
+                            //dictionary[i].add(job.dict[i][j]);
+                            dictionary.addnew(dictionaryThread.J.dict.get(i,j));
+
+                        }
+                    }
+                    std::cout<<"Storage was done" << std::endl;
+                    allParametersEstimated = true;
+                    std::cout << dictionary.getrowdim() << " " << dictionary.getcoldim() <<std::endl;
 
                 }
             }
-       }
-       electrode->lastBufferIndex = sampleIndex - nSamples;
-    }
+        }
+        else
+        {
 
+        }
+        electrode->lastBufferIndex = sampleIndex - nSamples;
+
+
+    }
     if (nSamples > overflowBufferSize)
     {
 
@@ -840,50 +924,8 @@ void ParameterEstimator::process(AudioSampleBuffer& buffer,
     }
     else
     {
-
         useOverflowBuffer = false;
     }
-    //this marks the ending of parameter detection -----------------------------
-
-
-
-    if (SVDPending)
-        if(SVDmethod)
-        {
-/*
-            SVDjob job(detectedSpikesAllElectrodes,false);
-            dictionaryThread.addSVDjob(job);
-
-
-            if(job.reportDone)
-            {
-                for (int i = 0; i<job.dict.getrowdim(); i++)
-                {
-                    for (int j = 0; j<job.dict.getcoldim(); j++)
-                    {
-                        std::cout<<job.dict.get(i,j)<<"-";
-
-                    }
-                    std::cout<<std::endl;
-                }
-                for (int i = 0; i<job.dict.getrowdim(); i++)
-                {
-                    for (int j = 0; j< job.dict.getcoldim(); j++)
-                    {
-                        //dictionary[i].add(job.dict[i][j]);
-                        dictionary.addnew(job.dict.get(i,j));
-
-                    }
-                }
-
-            }*/
-        }
-        else
-        {
-
-        }
-     std::cout<<"Reached here"<<std::endl;
-
 }
 
 void ParameterEstimator::loadCustomParametersFromXml()

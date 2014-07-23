@@ -238,7 +238,7 @@ void SpikeDisplayNode::process(AudioSampleBuffer& buffer, MidiBuffer& events, in
             for (int j = 0; j < e.currentSpikeIndex; j++)
             {
                 //std::cout << "Transferring spikes." << std::endl;
-                e.spikePlot->processSpikeObject(e.mostRecentSpikes[j]);
+                e.spikePlot->processSortedSpikeObject(e.mostRecentSortedSpikes[j]);
                 e.currentSpikeIndex = 0;
             }
 
@@ -307,10 +307,82 @@ void SpikeDisplayNode::handleEvent(int eventType, MidiMessage& event, int sample
         }
 
     }
+    if (eventType == SORTEDSPIKE)
+    {
+        //
+
+        const uint8_t* dataptr = event.getRawData();
+        int bufferSize = event.getRawDataSize();
+        //std::cout << "// Buffer size is//" << bufferSize;
+
+        if (bufferSize > 0)
+        {
+
+            SortedSpikeObject newSpike;
+
+            bool isValid = unpackSortedSpike(&newSpike, dataptr, bufferSize);
+
+            if (isValid)
+            {
+                int electrodeNum = newSpike.source;
+
+                Electrode& e = electrodes.getReference(electrodeNum);
+               // std::cout << electrodeNum << std::endl;
+
+                 bool aboveThreshold = false;
+
+                // update threshold / check threshold
+                for (int i = 0; i < e.numChannels; i++)
+                {
+                    e.detectorThresholds.set(i, float(newSpike.threshold[i])); // / float(newSpike.gain[i]));
+
+                    aboveThreshold = aboveThreshold | checkThreshold(i, e.displayThresholds[i], newSpike);
+                }
+
+                if (aboveThreshold)
+                {
+
+                    // add to buffer
+                    if (e.currentSpikeIndex < displayBufferSize)
+                    {
+                      //  std::cout << "Adding spike " << e.currentSpikeIndex + 1 << std::endl;
+                        e.mostRecentSortedSpikes.set(e.currentSpikeIndex, newSpike);
+                        e.currentSpikeIndex++;
+                    }
+
+                    // save spike
+                    if (isRecording)
+                    {
+                        writeSortedSpike(newSpike, electrodeNum);
+                    }
+                }
+
+            }
+
+        }
+
+    }
 
 }
 
 bool SpikeDisplayNode::checkThreshold(int chan, float thresh, SpikeObject& s)
+{
+    int sampIdx = s.nSamples*chan;
+
+    for (int i = 0; i < s.nSamples-1; i++)
+    {
+
+        if (float(s.data[sampIdx]-32768)/float(*s.gain)*1000.0f > thresh)
+        {
+            return true;
+        }
+
+        sampIdx++;
+    }
+
+    return false;
+}
+bool SpikeDisplayNode::checkThreshold(int chan, float thresh, SortedSpikeObject& s)
 {
     int sampIdx = s.nSamples*chan;
 
@@ -421,6 +493,41 @@ void SpikeDisplayNode::writeSpike(const SpikeObject& s, int i)
 
     fwrite(spikeBuffer, 1, totalBytes, electrodes[i].file);
     
+    fwrite(&recordingNumber,                         // ptr
+       2,                               // size of each element
+       1,                               // count
+       electrodes[i].file); // ptr to FILE object
+
+    diskWriteLock->exit();
+
+
+}
+void SpikeDisplayNode::writeSortedSpike(const SortedSpikeObject& s, int i)
+{
+
+    packSortedSpike(s, spikeBuffer, MAX_SPIKE_BUFFER_LEN);
+
+    int totalBytes = s.nSamples * s.nChannels * 2 + // account for samples
+                     s.nChannels * 4 +            // acount for threshold and gain
+                     15;                        // 15 bytes in every SpikeObject
+
+
+    // format:
+    // 1 byte of event type (always = 4 for spikes)
+    // 8 bytes for 64-bit timestamp
+    // 2 bytes for 16-bit electrode ID
+    // 2 bytes for 16-bit number of channels (n)
+    // 2 bytes for 16-bit number of samples (m)
+    // 2*n*m bytes for 16-bit samples
+    // 2*n bytes for 16-bit gains
+    // 2*n bytes for 16-bit thresholds
+
+   // const MessageManagerLock mmLock;
+
+    diskWriteLock->enter();
+
+    fwrite(spikeBuffer, 1, totalBytes, electrodes[i].file);
+
     fwrite(&recordingNumber,                         // ptr
        2,                               // size of each element
        1,                               // count

@@ -458,7 +458,7 @@ void RippleDetector::process(AudioSampleBuffer& buffer,
                             np = ((var-electrode->mu)/electrode->sigma);
                             np = 0.5*np*np - 8.0; //norm pdf (var) > 8 counts towards ripple probability
 
-                            logLikelihood = np; //not really LL; might figure out a better pdf for ripple later and add nuemrator term
+                            logLikelihood = np;
 
 
                             if (ripplePresent == false)
@@ -481,7 +481,7 @@ void RippleDetector::process(AudioSampleBuffer& buffer,
 
 
                                         RippleObject newRipple;
-
+                                        newRipple.start = 1;
                                         newRipple.eventType = RIPPLE;
                                         newRipple.eventId = 1;
                                         newRipple.eventChannel = 0;
@@ -510,6 +510,14 @@ void RippleDetector::process(AudioSampleBuffer& buffer,
                                     //std::cout << electrode->partialSum << std::endl;
                                     ripplePresent = false;
                                     electrode->partialSum = 0.0; //reset again
+                                    RippleObject newRipple;
+                                    newRipple.start = 0;
+                                    newRipple.eventType = RIPPLE;
+                                    newRipple.eventId = 1;
+                                    newRipple.eventChannel = 0;
+
+
+                                    addRippleEvent(&newRipple, events, sampleIndex);
 
                                 }
 

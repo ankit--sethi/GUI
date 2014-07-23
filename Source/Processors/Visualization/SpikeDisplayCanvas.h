@@ -137,7 +137,8 @@ public:
 
     void mouseDown(const MouseEvent& event);
 
-    void plotSpike(const SpikeObject& spike, int electrodeNum);
+    void plotSpike(const SpikeObject &spike, int electrodeNum);
+    void plotSpike(const SortedSpikeObject& spike, int electrodeNum);
 
     int getTotalHeight()
     {
@@ -189,6 +190,7 @@ public:
     void deselect();
 
     void processSpikeObject(const SpikeObject& s);
+    void processSortedSpikeObject(const SortedSpikeObject& s);
 
     SpikeDisplayCanvas* canvas;
 
@@ -259,6 +261,7 @@ public:
     virtual ~GenericAxes();
 
     virtual bool updateSpikeData(const SpikeObject& s);
+    virtual bool updateSpikeData(const SortedSpikeObject& s);
 
     void setXLims(double xmin, double xmax);
     void getXLims(double* xmin, double* xmax);
@@ -278,6 +281,7 @@ protected:
     double ylims[2];
 
     SpikeObject s;
+    SortedSpikeObject ss;
 
     bool gotFirstSpike;
 
@@ -303,11 +307,14 @@ public:
     ~WaveAxes() {}
 
     bool updateSpikeData(const SpikeObject& s);
+    bool updateSpikeData(const SortedSpikeObject& s);
     bool checkThreshold(const SpikeObject& spike);
+    bool checkThreshold(const SortedSpikeObject& spike);
 
     void paint(Graphics& g);
 
     void plotSpike(const SpikeObject& s, Graphics& g);
+    void plotSpike(const SortedSpikeObject& s, Graphics& g);
 
     void clear();
 
@@ -351,6 +358,7 @@ private:
     Font font;
 
     Array<SpikeObject> spikeBuffer;
+    Array<SortedSpikeObject> sortedSpikeBuffer;
 
     int spikeIndex;
     int bufferSize;
@@ -382,6 +390,7 @@ public:
     ~ProjectionAxes() {}
 
     bool updateSpikeData(const SpikeObject& s);
+    bool updateSpikeData(const SortedSpikeObject& s);
 
     void paint(Graphics& g);
 
@@ -396,6 +405,7 @@ private:
     void updateProjectionImage(uint16_t, uint16_t, uint16_t);
 
     void calcWaveformPeakIdx(const SpikeObject&, int, int, int*, int*);
+    void calcWaveformPeakIdx(const SortedSpikeObject&, int, int, int*, int*);
 
     int ampDim1, ampDim2;
 

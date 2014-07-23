@@ -478,7 +478,8 @@ public:
 		NETWORK = 7,
 		EYE_POSITION = 8,
         SERIAL = 9,
-        RIPPLE = 10
+        RIPPLE = 10,
+        SORTEDSPIKE = 11
     };
 
     enum eventChannelTypes

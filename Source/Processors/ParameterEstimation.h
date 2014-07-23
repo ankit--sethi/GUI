@@ -48,6 +48,28 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <list>
 #include <queue>
 
+struct Electrode
+{
+
+    String name;
+
+    int numChannels;
+    int prePeakSamples, postPeakSamples;
+    int lastBufferIndex;
+
+    int* channels;
+    double* thresholds;
+    bool* isActive;
+
+    int fftValidCount;
+    double paramAveragingCount;
+    float mu, sigma, musqrd;
+    float sumOfSquaresOfDifferences;
+
+
+};
+
+
 class TwoDimMatrix
 {
     public:
@@ -55,12 +77,12 @@ class TwoDimMatrix
         {
             xSize = 0; ySize = 0;
         }
-    /*~TwoDimMatrix()
+       ~TwoDimMatrix()
         {
 
-        }*/
+        }
 
-        int get( unsigned int x, unsigned int y ) const
+        float get( unsigned int x, unsigned int y ) const
         {
             return data[ x + y * ySize ];
         }
@@ -81,7 +103,6 @@ class TwoDimMatrix
 
         void set( unsigned int x, unsigned int y, float element )
         {
-            //data[ x + y * ySize ] = data;
             data[x + y * ySize] = element;
 
         }
@@ -90,19 +111,26 @@ class TwoDimMatrix
             data.push_back(element);
         }
 
+
     private:
         unsigned int xSize;
         unsigned int ySize;
-
         std::vector<float> data;
+
+
 };
+
+
+
+
 
 class SVDjob
 {
 public:
-    SVDjob(Array<SpikeObject> _spikes, bool _reportDone);
+    //SVDjob(Array<SpikeObject> _spikes, bool _reportDone);
+    SVDjob() {}
     ~SVDjob();
-
+    void SVDsetdim(Array<SpikeObject> _spikes, bool _reportDone);
     float **U;
     Array<SpikeObject> spikes;
     int dim;
@@ -123,6 +151,8 @@ public:
     void addSVDjob(SVDjob job);
 
     std::queue<SVDjob> jobs;
+
+    SVDjob J;
 
 };
 
@@ -203,12 +233,23 @@ other way, the application will crash. */
     /** Called after acquisition is finished. */
     bool disable();
 
+    float getElectrodeNoiseVar(int index);
 
     StringArray electrodeTypes;
     StringArray getElectrodeNames();
 
+    bool allParametersEstimated;
+
     void saveCustomParametersToXml(XmlElement* parentElement);
     void loadCustomParametersFromXml();
+
+    float acfLag1;
+
+    Array<Electrode*> electrodes;
+
+    TwoDimMatrix dictionary;
+
+    SVDjob job;
 
 private:
 
@@ -231,50 +272,28 @@ private:
     int overflowBufferSize;
 
     float delta, cssp;
+    float sampleRate;
 
-    float acfLag1;
 
-    //TwoDimMatrix dictionary;
+
     int dictionarySize;
 
 
 
     Array<int> electrodeCounter;
 
-    //SVDcomputingThread dictionaryThread;
+    SVDcomputingThread dictionaryThread;
 
     bool useOverflowBuffer;
 
     float getDefaultThreshold();
 
-    struct Electrode
-    {
-
-        String name;
-
-        int numChannels;
-        int prePeakSamples, postPeakSamples;
-        int lastBufferIndex;
-
-        int* channels;
-        double* thresholds;
-        bool* isActive;
-
-        int fftValidCount;
-        double paramAveragingCount;
-        float mu, sigma, musqrd;
-        float sumOfSquaresOfDifferences;
-
-
-    };
-
-    Array<Electrode*> electrodes;
-
+    bool SVDmethod;
 
 
     int64 timestamp;
 
-    //Array<SpikeObject> detectedSpikesAllElectrodes;
+    Array<SpikeObject> detectedSpikesAllElectrodes;
     //Array<Array<SpikeObject>> detectedSpikesPerElectrode;
 
     void addWaveformToSpikeObject(SpikeObject* s,

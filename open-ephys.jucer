@@ -229,6 +229,8 @@
               file="Source/Audio/AudioComponent.h"/>
       </GROUP>
       <GROUP id="yQmqZWk" name="Processors">
+        <FILE id="rrINrK" name="SpikeSorter.cpp" compile="1" resource="0" file="Source/Processors/SpikeSorter.cpp"/>
+        <FILE id="YVLh94" name="SpikeSorter.h" compile="0" resource="0" file="Source/Processors/SpikeSorter.h"/>
         <FILE id="WRmTFi" name="ParameterEstimation.cpp" compile="1" resource="0"
               file="Source/Processors/ParameterEstimation.cpp"/>
         <FILE id="XIxsSw" name="ParameterEstimation.h" compile="0" resource="0"
@@ -341,6 +343,10 @@
         <FILE id="hGnGAjh" name="EventNode.cpp" compile="1" resource="0" file="Source/Processors/EventNode.cpp"/>
         <FILE id="dUtRN6" name="EventNode.h" compile="0" resource="0" file="Source/Processors/EventNode.h"/>
         <GROUP id="AqvwO6w" name="Editors">
+          <FILE id="IpTzwr" name="SpikeSorterEditor.cpp" compile="1" resource="0"
+                file="Source/Processors/Editors/SpikeSorterEditor.cpp"/>
+          <FILE id="Z9GGuX" name="SpikeSorterEditor.h" compile="0" resource="0"
+                file="Source/Processors/Editors/SpikeSorterEditor.h"/>
           <FILE id="gYy1W3" name="ParameterEstimatorEditor.cpp" compile="1" resource="0"
                 file="Source/Processors/Editors/ParameterEstimatorEditor.cpp"/>
           <FILE id="n23P1H" name="ParameterEstimatorEditor.h" compile="0" resource="0"

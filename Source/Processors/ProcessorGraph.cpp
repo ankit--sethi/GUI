@@ -28,6 +28,7 @@
 #include "AudioNode.h"
 #include "LfpDisplayNode.h"
 #include "SpikeDisplayNode.h"
+#include "SpikeSorter.h"
 #include "EventNode.h"
 #include "FilterNode.h"
 #include "GenericProcessor.h"
@@ -554,6 +555,12 @@ GenericProcessor* ProcessorGraph::createProcessorFromDescription(String& descrip
         {
                 std::cout << "Creating a new ripple detector." << std::endl;
                 processor = new RippleDetector();
+        }
+        else if (subProcessorType.equalsIgnoreCase("Spike Sorter"))
+        {
+                std::cout << "Creating a new ripple detector." << std::endl;
+                processor = new SpikeSorter();
+                //std::cout << "the spike sorter was created" << std::endl;
         }
         else if (subProcessorType.equalsIgnoreCase("Parameter Estimator"))
         {

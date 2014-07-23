@@ -32,8 +32,9 @@
 #define MAX_NUMBER_OF_SPIKE_CHANNEL_SAMPLES 60
 #define CHECK_BUFFER_VALIDITY true
 #define SPIKE_EVENT_CODE 4;
+#define SORTED_SPIKE_EVENT_CODE 11;
 #define MAX_SPIKE_BUFFER_LEN 512 // max length of spike buffer in bytes
-                                 // the true max calculated from the spike values below is actually 507
+#define MAX_SORTED_SPIKE_BUFFER_LEN 512 // the true max calculated from the spike values below is actually 507
 
 #define SPIKE_BASE_CODE 100
 
@@ -70,11 +71,26 @@ struct SpikeObject
 
 };
 
+struct SortedSpikeObject
+{
+    uint8_t     eventType;
+    uint64_t    timestamp;
+    uint16_t    source;
+    uint16_t    nChannels;
+    uint16_t    nSamples;
+    uint16_t    data[MAX_NUMBER_OF_SPIKE_CHANNELS* MAX_NUMBER_OF_SPIKE_CHANNEL_SAMPLES];
+    uint16_t    gain[MAX_NUMBER_OF_SPIKE_CHANNELS];
+    uint16_t    threshold[MAX_NUMBER_OF_SPIKE_CHANNELS];
+    uint16_t    neuronID;
+};
+
 /** Simple method for serializing a SpikeObject into a string of bytes, returns true is the packaged spike buffer is valid */
 int packSpike(const SpikeObject* s, uint8_t* buffer, int bufferLength);
+int packSortedSpike(const SortedSpikeObject &s, uint8_t* buffer, int bufferLength);
 
 /** Simple method for deserializing a string of bytes into a Spike object, returns true is the provided spike buffer is valid */
 bool unpackSpike(SpikeObject* s, const uint8_t* buffer, int bufferLength);
+bool unpackSortedSpike(SortedSpikeObject* s, const uint8_t* buffer, int bufferLength);
 
 /** Checks the validity of the buffer, this should be run before unpacking the buffer */
 bool isBufferValid(const uint8_t* buffer, int bufferLength);
@@ -100,6 +116,7 @@ int microSecondsToSpikeTimeBin(SpikeObject *s, float t, int ch=0);*/
 
 /** Helper function for zeroing out a spike object with a specified number of channels */
 void generateEmptySpike(SpikeObject* s, int nChannels);
+void generateEmptySortedSpike(SortedSpikeObject* s, int nChannels);
 
 void printSpike(SpikeObject* s);
 

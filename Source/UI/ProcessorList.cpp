@@ -64,6 +64,7 @@ ProcessorList::ProcessorList()
     filters->addSubItem(new ProcessorListItem("Parameter Estimator"));
     filters->addSubItem(new ProcessorListItem("Bandpass Filter"));
     filters->addSubItem(new ProcessorListItem("Spike Detector"));
+    filters->addSubItem(new ProcessorListItem("Spike Sorter"));
     filters->addSubItem(new ProcessorListItem("Ripple Detector"));
     //filters->addSubItem(new ProcessorListItem("Resampler"));
     filters->addSubItem(new ProcessorListItem("Phase Detector"));

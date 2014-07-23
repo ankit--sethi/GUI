@@ -287,6 +287,7 @@
     <ClCompile Include="..\..\Source\Dsp\RootFinder.cpp"/>
     <ClCompile Include="..\..\Source\Dsp\State.cpp"/>
     <ClCompile Include="..\..\Source\Audio\AudioComponent.cpp"/>
+    <ClCompile Include="..\..\Source\Processors\SpikeSorter.cpp"/>
     <ClCompile Include="..\..\Source\Processors\ParameterEstimation.cpp"/>
     <ClCompile Include="..\..\Source\Processors\TTLTrigger.cpp"/>
     <ClCompile Include="..\..\Source\Processors\RippleDetector.cpp"/>
@@ -321,6 +322,7 @@
     <ClCompile Include="..\..\Source\Processors\SpikeDetector.cpp"/>
     <ClCompile Include="..\..\Source\Processors\AudioNode.cpp"/>
     <ClCompile Include="..\..\Source\Processors\EventNode.cpp"/>
+    <ClCompile Include="..\..\Source\Processors\Editors\SpikeSorterEditor.cpp"/>
     <ClCompile Include="..\..\Source\Processors\Editors\ParameterEstimatorEditor.cpp"/>
     <ClCompile Include="..\..\Source\Processors\Editors\RippleDetectorEditor.cpp"/>
     <ClCompile Include="..\..\Source\Processors\Editors\RippleDisplayEditor.cpp"/>
@@ -1494,6 +1496,7 @@
     <ClInclude Include="..\..\Source\Dsp\Types.h"/>
     <ClInclude Include="..\..\Source\Dsp\Utilities.h"/>
     <ClInclude Include="..\..\Source\Audio\AudioComponent.h"/>
+    <ClInclude Include="..\..\Source\Processors\SpikeSorter.h"/>
     <ClInclude Include="..\..\Source\Processors\ParameterEstimation.h"/>
     <ClInclude Include="..\..\Source\Processors\TTLTrigger.h"/>
     <ClInclude Include="..\..\Source\Processors\RippleDetector.h"/>
@@ -1530,6 +1533,7 @@
     <ClInclude Include="..\..\Source\Processors\SpikeDetector.h"/>
     <ClInclude Include="..\..\Source\Processors\AudioNode.h"/>
     <ClInclude Include="..\..\Source\Processors\EventNode.h"/>
+    <ClInclude Include="..\..\Source\Processors\Editors\SpikeSorterEditor.h"/>
     <ClInclude Include="..\..\Source\Processors\Editors\ParameterEstimatorEditor.h"/>
     <ClInclude Include="..\..\Source\Processors\Editors\RippleDetectorEditor.h"/>
     <ClInclude Include="..\..\Source\Processors\Editors\RippleDisplayEditor.h"/>

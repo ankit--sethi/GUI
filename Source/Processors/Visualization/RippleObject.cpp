@@ -30,8 +30,9 @@ int packRipple(RippleObject* s, uint8_t* buffer, int bufferSize)
     //std::cout<<"reached to just before memwriting"<<std::endl;
     memcpy(buffer+idx, &(s->eventType), 1);
     idx += 1;
-    memcpy(buffer+idx, &(s->eventType), 1);
+    memcpy(buffer+idx, &(s->start), 1);
     idx += 1;
+
     //std::cout<<"reached to just before packing timestamp "<<s->timestamp<<std::endl;
     memcpy(buffer+idx, &(s->eventId), 1);
     idx += 1;
@@ -42,7 +43,7 @@ int packRipple(RippleObject* s, uint8_t* buffer, int bufferSize)
 
     if (idx >= MAX_RIPPLE_BUFFER_LEN)
     {
-        std::cout<<"Spike is larger than it should be. Size was:"<<idx<<" Max Size is:"<<MAX_RIPPLE_BUFFER_LEN<<std::endl;
+        std::cout<<"Ripple is larger than it should be. Size was:"<<idx<<" Max Size is:"<<MAX_RIPPLE_BUFFER_LEN<<std::endl;
 
     }
   //  makeBufferValid(buffer, idx);
@@ -60,6 +61,9 @@ bool unpackRipple(RippleObject* s, const uint8_t* buffer, int bufferSize)
     int idx = 0;
     //std::cout<<"reached to just before memwriting"<<(int)*(buffer+idx)<<std::endl;
     memcpy(&(s->eventType), buffer+idx, 1);
+    idx += 1;
+
+    memcpy(&(s->start), buffer+idx, 1);
     idx += 1;
 
     memcpy(&(s->eventId), buffer+idx, 1);
