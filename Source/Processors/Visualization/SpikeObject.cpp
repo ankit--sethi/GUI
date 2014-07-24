@@ -115,7 +115,7 @@ int packSortedSpike(const SortedSpikeObject& s, uint8_t* buffer, int bufferSize)
 
     memcpy(buffer+idx, &(s.neuronID), s.nChannels * 2);
     idx += s.nChannels * 2;
-    std::cout << "//" << s.neuronID << "//";
+    //std::cout << "//" << s.neuronID << "//";
 
     if (idx >= MAX_SPIKE_BUFFER_LEN)
     {

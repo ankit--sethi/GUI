@@ -246,25 +246,6 @@ void SpikeSorter::MatrixInversion(long double **A, int order, long double **Y)
 void SpikeSorter::MatrixInversion(double **A, int order, double **Y)
 {
 
-    /*bool flag = false;
-    int count = 0;
-
-    for (int i = 0; i < order; i++)
-    {
-        for(int j = 0; j < order; j++)
-        {
-            if (A[i][j] != A[i][j])
-            {
-                flag = true;
-                count++;
-            }
-        }
-    }
-    if (flag)
-    {
-    //std::cout << "Matrix arrived NAN with " << count << " elements." << std::endl;
-    }*/
-
 
     double tempest = CalcDeterminant(A,order);
     double det = 1.0/tempest;

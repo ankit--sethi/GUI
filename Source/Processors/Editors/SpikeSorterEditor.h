@@ -26,7 +26,9 @@ class SpikeSorterEditor : public GenericEditor,
     void labelTextChanged(Label* label);
     void comboBoxChanged(ComboBox* comboBox);
 
+
     private:
+    ComboBox* electrodeTypes;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SpikeSorterEditor);
 

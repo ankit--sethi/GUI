@@ -264,6 +264,8 @@ private:
     bool samplesBeingCollected;
 
     int number;
+    double startTime;
+    double stopTime;
 
     float likelihoodNoSpike;
     float maximumLikelihoodPerNeuron;
