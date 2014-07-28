@@ -22,8 +22,10 @@
 #include "SourceNode.h"
 //#include "SpikeDetector.h"
 #include "Editors/SpikeSorterEditor.h"
+#include "../../Resources/eigen-eigen-6b38706d90a9/Eigen/Dense"
+#include "../../Resources/eigen-eigen-6b38706d90a9/Eigen/LU"
 
-
+using namespace Eigen;
 
 class expandedfloat
 {
@@ -124,7 +126,8 @@ public:
     float kappa0;
     float nu0;
     unsigned int K;
-    Array<Array<float>> phi0;
+    //Array<Array<float>> phi0;
+    MatrixXd phi0;
     float apii;
     float bpii;
     float beta;
@@ -134,28 +137,29 @@ public:
     int lookahead; //functionally, it is the size of the buffer
     int range;
     float pii;
-    Array <float> nu;
-    Array <Array<Array<float>>> phi;
-    Array <Array <Array<float>>> lamclus;
-    Array <Array <Array<float>>> lamclusinv;
-    Array <Array <Array<float>>> R;
-    Array <Array <Array<float>>> Rinv;
-    Array <Array<float>> Qt;
-    Array <Array<float>> muu0;
-    Array <float> kappa;
-    Array <Array<float>> muu;
-    Array <Array<float>> lambda;
+    //Array <float> nu;
+    VectorXd nu;
+    juce:Array <MatrixXd> phi;
+    juce:Array <MatrixXd> lamclus;
+    juce:Array <MatrixXd> lamclusinv;
+    juce:Array <MatrixXd> R;
+    juce:Array <MatrixXd> Rinv;
+    MatrixXd Qt;
+    MatrixXd muu0;
+    VectorXd kappa;
+    MatrixXd muu;
+    MatrixXd lambda;
     double logDeterminantOfLambda;
-    Array<Array<float>> sigma;
-    Array<Array<float>> Q;
-    Array<Array<float>> Qinv;
-    Array<Array<float>> ReducedDictionary; //This is A (PxK)
-    Array<Array<float>> ReducedDictionaryTranspose;
-    Array<Array<float>> Qmat;
-    Array<Array<float>> yhat;
-    Array<Array<float>> mhat;
-    Array<Array<float>> Qhat;
-    Array<float> xwindLonger;
+    MatrixXd sigma;
+    MatrixXd Q;
+    MatrixXd Qinv;
+    MatrixXd ReducedDictionary; //This is A (PxK)
+    MatrixXd ReducedDictionaryTranspose;
+    MatrixXd Qmat;
+    MatrixXd yhat;
+    MatrixXd mhat;
+    MatrixXd Qhat;
+    VectorXd xwindLonger;
     unsigned int neuronCount; // this is C in the code
 
     double Hadj;
@@ -164,14 +168,14 @@ public:
 
     bool suppress;
     bool test;
-
-    Array <expandedfloat> ltheta;
-    Array <float> ngamma;
+    juce:Array <> tlastspike;
+    juce:Array <expandedfloat> ltheta;
+    VectorXd ngamma;
 
     float threshold;
     int totalSpikesFound;
-    Array <unsigned long int> tlastspike;
-    Array <std::vector<float>> muuS;
+
+
     //Array <TwoDimMatrix> lamclusS;
 
     float suppresslikelihood;
@@ -183,8 +187,8 @@ public:
 
     float getaBaInnerProductSum(Array<float>& xwindm, Array<Array<float>>& InnerMatrix);
 
-    Array<float> xwind; //remember, xwind is "of the moment", xwind lacks history
-    Array<float> xwindloop;
+    juce:Array<float> xwind; //remember, xwind is "of the moment", xwind lacks history
+    juce:Array<float> xwindloop;
 
     bool setLambda;
 

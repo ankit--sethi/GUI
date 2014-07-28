@@ -17,6 +17,10 @@
 #include <limits.h>
 #include <fstream>
 
+
+using namespace Eigen;
+
+
 #define PI 3.1415926535897932384626433832795
 
 
@@ -404,10 +408,12 @@ SpikeSorter::SpikeSorter()
     nu0 = 0.1;
     buffersArePlush = false;
 
+
     K = 3; // number of SVD components to use; need to make this a control
+    phi0 = MatrixXd::Zero(K,K);
     //phi0 = new float*[K];
 
-    Array<float> temp;
+    /*Array<float> temp;
     for (int i = 0; i < K; i++)
     {
        temp.add(0);
@@ -427,7 +433,7 @@ SpikeSorter::SpikeSorter()
                 t->setUnchecked(j,0);
         }
         t++;
-    }
+    }*/
 
     //Phi_0=.1*eye(K);
     number = 0;
@@ -448,36 +454,29 @@ SpikeSorter::SpikeSorter()
     lookahead = 500; //functionally, it is the size of the buffer
     range = 40; // defines basically the width of a spike
     // setting sigma
-    temp.clear();
-    for (int i = 0; i < P; i++)
-    {
-        temp.add(0);
-    }
-    for (int j = 0; j< P; j++)
-    {
-        sigma.add(temp);
-    }
-    // end of setting sigma
+    sigma = MatrixXd::Zero(P,P);
 
     pii=apii/bpii;
 
+    MatrixXd phi0invnu0forR = ((phi0.inverse().array() + nu0)*2).matrix();
+    nu = VectorXd::Constant(Cmax, 1, nu0);
 
 
-    Array<Array<float>> phi0inv;
+    /*Array<Array<float>> phi0inv;
     invertSquareTwoDimMatrix(phi0, phi0inv);
 
     Array<Array<float>> phi0invnu0;
     MatrixMultiplyWithConstant(phi0inv, nu0, phi0invnu0);
 
     Array<Array<float>> phi0invnu0forR;
-    MatrixMultiplyWithConstant(phi0invnu0,0.2, phi0invnu0forR);
+    MatrixMultiplyWithConstant(phi0invnu0,0.2, phi0invnu0forR);*/
 
     for (int i = 0; i < Cmax; i++)
     {
         expandedfloat zerovar;
         zerovar.setNonInf();
         zerovar.setVar(0.0);
-        nu.add(nu0);
+        //nu.add(nu0);
         phi.add(phi0);
         kappa.add(kappa0);
         lamclus.add(phi0invnu0);
@@ -1513,25 +1512,33 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
 
 
             Array<float>* test = sigma.getRawDataPointer();
+            Array<double> powers;
+            double start = 1;
 
             for (int i = 0; i < P; i++)
             {
-                float power = -1*i;
+                powers.add(start);
+                start *= node->acfLag1;
+            }
+            float powerIndex;
+            for (int i = 0; i < P; i++)
+            {
+                powerIndex = -1*i;
                 for (int j = 0; j < P; j++)
                 {
 
-                    (test+i)->setUnchecked(j,node->getElectrodeNoiseVar(0)*pow(node->acfLag1, abs(power)));
-
                     if ( i == j )
-                    (test+i)->setUnchecked(j,node->getElectrodeNoiseVar(0));
-
-                    power++;
+                        (test+i)->setUnchecked(j,node->getElectrodeNoiseVar(0));
+                    else
+                        (test+i)->setUnchecked(j,node->getElectrodeNoiseVar(0)*powers.getUnchecked(abs(powerIndex)));
+                    powerIndex++;
                 }
             }
 
 
             std::cout<< " ACF LAG in Spike Sorter is " << node->acfLag1 << " and the Var is " << node->getElectrodeNoiseVar(0) << "  "  << std::endl;
             Array<Array<long double>> proxy;
+
 
             double startTime1 = Time::getMillisecondCounterHiRes();
             invertSquareTwoDimMatrix(sigma, proxy);
