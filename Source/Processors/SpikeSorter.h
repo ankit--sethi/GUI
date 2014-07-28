@@ -23,7 +23,7 @@
 //#include "SpikeDetector.h"
 #include "Editors/SpikeSorterEditor.h"
 #include "../../Resources/eigen-eigen-6b38706d90a9/Eigen/Dense"
-#include "../../Resources/eigen-eigen-6b38706d90a9/Eigen/LU"
+#include "../../Resources/eigen-eigen-6b38706d90a9/Eigen/QR"
 
 using namespace Eigen;
 
@@ -139,11 +139,11 @@ public:
     float pii;
     //Array <float> nu;
     VectorXd nu;
-    juce:Array <MatrixXd> phi;
-    juce:Array <MatrixXd> lamclus;
-    juce:Array <MatrixXd> lamclusinv;
-    juce:Array <MatrixXd> R;
-    juce:Array <MatrixXd> Rinv;
+    Array <MatrixXd> phi;
+    Array <MatrixXd> lamclus;
+    Array <MatrixXd> lamclusinv;
+    Array <MatrixXd> R;
+    Array <MatrixXd> Rinv;
     MatrixXd Qt;
     MatrixXd muu0;
     VectorXd kappa;
@@ -156,8 +156,8 @@ public:
     MatrixXd ReducedDictionary; //This is A (PxK)
     MatrixXd ReducedDictionaryTranspose;
     MatrixXd Qmat;
-    MatrixXd yhat;
-    MatrixXd mhat;
+    VectorXd yhat;
+    VectorXd mhat;
     MatrixXd Qhat;
     VectorXd xwindLonger;
     unsigned int neuronCount; // this is C in the code
@@ -168,8 +168,8 @@ public:
 
     bool suppress;
     bool test;
-    juce:Array <> tlastspike;
-    juce:Array <expandedfloat> ltheta;
+    VectorXi tlastspike;
+    VectorXd ltheta;
     VectorXd ngamma;
 
     float threshold;
@@ -187,8 +187,8 @@ public:
 
     float getaBaInnerProductSum(Array<float>& xwindm, Array<Array<float>>& InnerMatrix);
 
-    juce:Array<float> xwind; //remember, xwind is "of the moment", xwind lacks history
-    juce:Array<float> xwindloop;
+    VectorXd xwind; //remember, xwind is "of the moment", xwind lacks history
+    VectorXd xwindloop;
 
     bool setLambda;
 
@@ -251,8 +251,8 @@ private:
     SortedSpikeObject currentSpike;
     int currentIndex;  // this is for keeping track of indices after threshold crossing
 
-    Array<float> lthr;
-    Array<Array<float>> lon;
+    VectorXf lthr;
+    MatrixXf lon;
 
     void GetMinor(long double **src, long double **dest, int row, int col, int order);
     void GetMinor(double **src, double **dest, int row, int col, int order);
@@ -273,7 +273,7 @@ private:
 
     float likelihoodNoSpike;
     float maximumLikelihoodPerNeuron;
-    Array <float> likelihoodPerNeuron;
+    VectorXd likelihoodPerNeuron;
 
     uint8_t* spikeBuffer;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SpikeSorter);
