@@ -25,7 +25,8 @@
 #include "../../Resources/eigen-eigen-6b38706d90a9/Eigen/Dense"
 #include "../../Resources/eigen-eigen-6b38706d90a9/Eigen/QR"
 
-using namespace Eigen;
+//using namespace Eigen;
+//using namespace juce;
 
 class expandedfloat
 {
@@ -101,7 +102,7 @@ class CircularQueue
         ~CircularQueue() { }
         void setsize(int siz);
         void enqueue(float item);
-        Array<float> show(int index);
+        juce::Array<float> show(int index);
         void dequeue();
         bool isBufferPlush(int minsize);
         int getsize();
@@ -127,7 +128,7 @@ public:
     float nu0;
     unsigned int K;
     //Array<Array<float>> phi0;
-    MatrixXd phi0;
+    Eigen::MatrixXd phi0;
     float apii;
     float bpii;
     float beta;
@@ -138,15 +139,15 @@ public:
     int range;
     float pii;
     //Array <float> nu;
-    VectorXd nu;
-    Array <MatrixXd> phi;
-    Array <MatrixXd> lamclus;
-    Array <MatrixXd> lamclusinv;
-    Array <MatrixXd> R;
-    Array <MatrixXd> Rinv;
+    Eigen::RowVectorXd nu;
+    juce::Array <MatrixXd> phi;
+    juce::Array <MatrixXd> lamclus;
+    juce::Array <MatrixXd> lamclusinv;
+    juce::Array <MatrixXd> R;
+    juce::Array <MatrixXd> Rinv;
     MatrixXd Qt;
     MatrixXd muu0;
-    VectorXd kappa;
+    RowVectorXd kappa;
     MatrixXd muu;
     MatrixXd lambda;
     double logDeterminantOfLambda;
@@ -168,9 +169,9 @@ public:
 
     bool suppress;
     bool test;
-    VectorXi tlastspike;
-    VectorXd ltheta;
-    VectorXd ngamma;
+    RowVectorXd tlastspike;
+    RowVectorXd ltheta;
+    RowVectorXd ngamma;
 
     float threshold;
     int totalSpikesFound;
@@ -183,9 +184,7 @@ public:
 
     int64 timestamp;
 
-    Array <CircularQueue*> circbuffer;
-
-    float getaBaInnerProductSum(Array<float>& xwindm, Array<Array<float>>& InnerMatrix);
+    juce::Array <CircularQueue*> circbuffer;
 
     VectorXd xwind; //remember, xwind is "of the moment", xwind lacks history
     VectorXd xwindloop;
@@ -204,23 +203,7 @@ public:
     }
 
     bool checkIfAllParametersEstimated;
-    void invertSquareTwoDimMatrix(const Array<Array<float>> &A, Array<Array<float>>& result);
-    void invertSquareTwoDimMatrix(const Array<Array<float> > &A, Array<Array<long double>>& result);
-    void MatrixMultiplication(const Array<Array<float>>& A, const Array<Array<float>>& B, Array<Array<float> > &result);
-    void MatrixTranspose(const Array<Array<float>>& A, Array<Array<float>>& result);
-    void AddMatrices(const Array<Array<float>>& A, const Array<Array<float>>& B, Array<Array<float>>& result);
-    void AddMatrixToItself(Array<Array<float>>& A, const Array<Array<float>>& B);
-    void MatrixGetRowOrColumn(const Array<Array<float>>& A, bool row, int index, Array<Array<float>>& result);
-    void returnMainDiagonal(const Array<Array<float>>& A, Array<float> &result);
-    void cholesky(const Array<Array<float>>& A, Array<Array<float>> &result);
-    void MatrixMultiplyWithConstant(const Array<Array<float>>& A, float c, Array<Array<float> > &result);
-    void MatrixReplaceColumn(Array<Array<float> > &A, const Array<Array<float>>& B, int colindex);
-    void eye(int dim, Array<Array<float> > &result);
-    void dotSlashOperation(const Array<Array<float>>& A, float c, Array<Array<float> > &result);
-    double getMatrixDeterminant(const Array<Array<float> > &A);
-    double getMatrixDeterminant(const Array<Array<long double>>& A);
-    double getMatrixDeterminant(const Array<Array<double> > &A);
-    double getMatrixLogDeterminant(const Array<Array<float> > &A);
+
     void getLikelihoodPerNeuron(int FoundNeuronIndex, float tmp);
     void collectSamplesForSpikeObject(int electrodeIndex, float trigSample);
     void addNewSampleAndLikelihoodsToCurrentSpikeObject(float sample, MidiBuffer &eventBuffer, int chan);
@@ -251,16 +234,8 @@ private:
     SortedSpikeObject currentSpike;
     int currentIndex;  // this is for keeping track of indices after threshold crossing
 
-    VectorXf lthr;
-    MatrixXf lon;
-
-    void GetMinor(long double **src, long double **dest, int row, int col, int order);
-    void GetMinor(double **src, double **dest, int row, int col, int order);
-    double CalcDeterminant(long double **in_matrix, int n);
-    double CalcDeterminant(double **in_matrix, int n);
-    double CalcDeterminant(float **in_matrix, int n);
-    void MatrixInversion(long double **A, int order, long double **Y);
-    void MatrixInversion(double **A, int order, double **Y);
+    VectorXd lthr;
+    MatrixXd lon;
 
     bool buffersArePlush;
 
@@ -273,7 +248,7 @@ private:
 
     float likelihoodNoSpike;
     float maximumLikelihoodPerNeuron;
-    VectorXd likelihoodPerNeuron;
+    RowVectorXd likelihoodPerNeuron;
 
     uint8_t* spikeBuffer;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SpikeSorter);

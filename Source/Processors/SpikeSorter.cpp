@@ -25,279 +25,7 @@ using namespace Eigen;
 
 
 // calculate the cofactor of element (row,col)
-void SpikeSorter::GetMinor(long double **src, long double **dest, int row, int col, int order)
-{
-    // indicate which col and row is being copied to dest
-    int colCount=0,rowCount=0;
 
-    for(int i = 0; i < order; i++ )
-    {
-        if( i != row )
-        {
-            colCount = 0;
-            for(int j = 0; j < order; j++ )
-            {
-                // when j is not the element
-                if( j != col )
-                {
-                    dest[rowCount][colCount] = src[i][j];
-                    colCount++;
-                }
-            }
-            rowCount++;
-        }
-    }
-}
-void SpikeSorter::GetMinor(double **src, double **dest, int row, int col, int order)
-{
-    // indicate which col and row is being copied to dest
-    int colCount=0,rowCount=0;
-
-    for(int i = 0; i < order; i++ )
-    {
-        if( i != row )
-        {
-            colCount = 0;
-            for(int j = 0; j < order; j++ )
-            {
-                // when j is not the element
-                if( j != col )
-                {
-                    dest[rowCount][colCount] = src[i][j];
-                    colCount++;
-                }
-            }
-            rowCount++;
-        }
-    }
-}
-
-
-// Calculate the determinant recursively.
-double SpikeSorter::CalcDeterminant(long double **in_matrix, int n)
-{
-   int i, j, k;
-  long double **matrix;
-  double det = 1;
-
-  matrix = new long double*[n];
-
-  for ( i = 0; i < n; i++ )
-    matrix[i] = new long double[n];
-
-  for ( i = 0; i < n; i++ ) {
-    for ( j = 0; j < n; j++ )
-      matrix[i][j] = in_matrix[i][j];
-  }
-
-  for ( k = 0; k < n; k++ ) {
-    if ( matrix[k][k] == 0 ) {
-      bool ok = false;
-
-      for ( j = k; j < n; j++ ) {
-        if ( matrix[j][k] != 0 )
-          ok = true;
-      }
-
-      if ( !ok )
-        return 0;
-
-      for ( i = k; i < n; i++ )
-        std::swap ( matrix[i][j], matrix[i][k] );
-
-      det = -det;
-    }
-
-    det *= matrix[k][k];
-
-    if ( k + 1 < n ) {
-      for ( i = k + 1; i < n; i++ ) {
-        for ( j = k + 1; j < n; j++ )
-          matrix[i][j] = matrix[i][j] - matrix[i][k] *
-          matrix[k][j] / matrix[k][k];
-      }
-    }
-  }
-
-  for ( i = 0; i < n; i++ )
-    delete [] matrix[i];
-
-  delete [] matrix;
-
-  return det;
-}
-
-double SpikeSorter::CalcDeterminant(double **in_matrix, int n)
-{
-   int i,j,j1,j2;
-   double det = 0;
-   double **m = NULL;
-
-   if (n < 1) { /* Error */
-
-   } else if (n == 1) { /* Shouldn't get used */
-      det = in_matrix[0][0];
-   } else if (n == 2) {
-      det = in_matrix[0][0] * in_matrix[1][1] - in_matrix[1][0] * in_matrix[0][1];
-   } else {
-      det = 0;
-      for (j1=0;j1<n;j1++) {
-         m = (double**)malloc((n-1)*sizeof(double *));
-         for (i=0;i<n-1;i++)
-            m[i] = (double*)malloc((n-1)*sizeof(double));
-         for (i=1;i<n;i++) {
-            j2 = 0;
-            for (j=0;j<n;j++) {
-               if (j == j1)
-                  continue;
-               m[i-1][j2] = in_matrix[i][j];
-               j2++;
-            }
-         }
-         det += pow(-1.0,1.0+j1+1.0) * in_matrix[0][j1] * CalcDeterminant(m,n-1);
-         for (i=0;i<n-1;i++)
-            free(m[i]);
-         free(m);
-      }
-   }
-   return(det);
-}
-double SpikeSorter::CalcDeterminant(float **in_matrix, int n)
-{
-   int i,j,j1,j2;
-   double det = 0;
-   float **m = NULL;
-
-   if (n < 1) { /* Error */
-
-   } else if (n == 1) { /* Shouldn't get used */
-      det = in_matrix[0][0];
-   } else if (n == 2) {
-      det = in_matrix[0][0] * in_matrix[1][1] - in_matrix[1][0] * in_matrix[0][1];
-   } else {
-      det = 0;
-      for (j1=0;j1<n;j1++) {
-         m = (float**)malloc((n-1)*sizeof(float *));
-         for (i=0;i<n-1;i++)
-            m[i] = (float*)malloc((n-1)*sizeof(float));
-         for (i=1;i<n;i++) {
-            j2 = 0;
-            for (j=0;j<n;j++) {
-               if (j == j1)
-                  continue;
-               m[i-1][j2] = in_matrix[i][j];
-               j2++;
-            }
-         }
-         det += pow(-1.0,1.0+j1+1.0) * in_matrix[0][j1] * CalcDeterminant(m,n-1);
-         for (i=0;i<n-1;i++)
-            free(m[i]);
-         free(m);
-      }
-   }
-   return(det);
-}
-void SpikeSorter::MatrixInversion(long double **A, int order, long double **Y)
-{
-    /*bool flag = false;
-    int count = 0;
-
-    for (int i = 0; i < order; i++)
-    {
-        for(int j = 0; j < order; j++)
-        {
-            if (A[i][j] != A[i][j])
-            {
-                flag = true;
-                count++;
-                //test = false;
-            }
-        }
-    }
-    if (flag)
-    {
-    //std::cout << "Matrix arrived NAN with " << count << " elements." << std::endl;
-    return;
-    }*/
-
-    long double tempest = CalcDeterminant(A,order);
-    long double det = 1.0/tempest;
-
-    long double *temp = new long double[(order-1)*(order-1)];
-    long double **minor = new long double*[order-1];
-    for(int i=0;i<order-1;i++)
-        minor[i] = temp+(i*(order-1));
-    for(int j=0;j<order;j++)
-    {
-        for(int i=0;i<order;i++)
-        {
-            // get the co-factor (matrix) of A(j,i)
-            GetMinor(A,minor,j,i,order);
-            Y[i][j] = det*CalcDeterminant(minor,order-1);
-            if (Y[i][j] != Y[i][j])
-            {
-                std::cout << "possible nan";
-            }
-            if( (i+j)%2 == 1) // in case of zero, values become negative zero
-                Y[i][j] = -Y[i][j];
-        }
-    }
-
-    delete [] temp;
-    delete [] minor;
-}
-
-void SpikeSorter::MatrixInversion(double **A, int order, double **Y)
-{
-
-    /*bool flag = false;
-    int count = 0;
-
-    for (int i = 0; i < order; i++)
-    {
-        for(int j = 0; j < order; j++)
-        {
-            if (A[i][j] != A[i][j])
-            {
-                flag = true;
-                count++;
-            }
-        }
-    }
-    if (flag)
-    {
-    //std::cout << "Matrix arrived NAN with " << count << " elements." << std::endl;
-    }*/
-
-
-    double tempest = CalcDeterminant(A,order);
-    double det = 1.0/tempest;
-
-    double *temp = new double[(order-1)*(order-1)];
-    double **minor = new double*[order-1];
-    for(int i=0;i<order-1;i++)
-        minor[i] = temp+(i*(order-1));
-
-    for(int j=0;j<order;j++)
-    {
-        for(int i=0;i<order;i++)
-        {
-            // get the co-factor (matrix) of A(j,i)
-
-            GetMinor(A,minor,j,i,order);
-            Y[i][j] = det*CalcDeterminant(minor,order-1);
-            if (Y[i][j] != Y[i][j])
-            {
-                std::cout << "possible nan";
-            }
-            if( (i+j)%2 == 1) // in case of zero, values become negative zero
-                Y[i][j] = -Y[i][j];
-        }
-    }
-
-    delete [] temp;
-    delete [] minor;
-}
 int CircularQueue::getsize()
 {
     return size;
@@ -372,9 +100,9 @@ void CircularQueue::dequeue()
     }
 }
 
-VectorXf CircularQueue::show(int index)
+juce::Array<float> CircularQueue::show(int index)
 {
-    Array <float> xwithPsamples;
+    juce::Array <float> xwithPsamples;
     if (index <= size + 1)
     {
         for(int i = 0; i < index; i++)
@@ -434,21 +162,24 @@ SpikeSorter::SpikeSorter()
 
     pii=apii/bpii;
 
-    MatrixXd phi0invnu0forR = ((phi0.inverse().array() + nu0)*2).matrix();
-    nu = VectorXd::Constant(1,Cmax, nu0);
-    kappa = VectorXd::Constant(1,Cmax, kappa0);
-    ltheta = VectorXd::Constant(1,Cmax, 0);
-    ngamma = VectorXd::Constant(1,Cmax, 0);
-    tlastspike = VectorXd::Constant(1,Cmax, 0);
-    likelihoodPerNeuron = VectorXd::Constant(1,Cmax, 0);
+    MatrixXd phi0nu0forlamclus = ((phi0.inverse().array()*nu0)).matrix();
+    MatrixXd phi0nu0forlamclusinv = phi0nu0forlamclus;
+    MatrixXd phi0nu0forR = ((phi0.inverse().array()*nu0)*0.2).matrix();
+    MatrixXd phi0nu0forRinv = phi0nu0forR;
+    nu = RowVectorXd::Constant(1,Cmax, nu0);
+    kappa = RowVectorXd::Constant(1,Cmax, kappa0);
+    ltheta = RowVectorXd::Zero(1,Cmax);
+    ngamma = RowVectorXd::Zero(1,Cmax);
+    tlastspike = RowVectorXd::Zero(1,Cmax);
+    likelihoodPerNeuron = RowVectorXd::Zero(1,Cmax);
 
     for (int i = 0; i < Cmax; i++)
     {
         phi.add(phi0);
-        lamclus.add(phi0invnu0);
-        lamclusinv.add(phi0invnu0);
-        R.add(phi0invnu0forR);
-        Rinv.add(phi0invnu0forR);
+        lamclus.add(phi0nu0forlamclus);
+        lamclusinv.add(phi0nu0forlamclusinv);
+        R.add(phi0nu0forR);
+        Rinv.add(phi0nu0forRinv);
     }
     muu = MatrixXd::Constant(K, Cmax, 0);
     muu0 = MatrixXd::Constant(K, Cmax, 0);
@@ -458,8 +189,9 @@ SpikeSorter::SpikeSorter()
     Qmat = MatrixXd::Constant(K, K, 0);
     mhat = VectorXd::Constant(K, 1, 0);
     yhat = VectorXd::Constant(K, 1, 0);
-    ReducedDictionary = Matrix::Constant(P, K, 0);
-    ReducedDictionaryTranspose = ReducedDictionary.transposeInPlace();
+    ReducedDictionary = MatrixXd::Constant(P, K, 0);
+    ReducedDictionaryTranspose = MatrixXd::Constant(K, P, 0);
+    ReducedDictionaryTranspose = ReducedDictionary.transpose();
 
     neuronCount = 0; // This is 'C' in the MATLAB code.
     //nz = 0; // Not sure what this does. Possible the same thing.
@@ -532,7 +264,7 @@ bool SpikeSorter::checkIfLogIsInf(float  num, float den)
 void SpikeSorter::setParameter(int parameterIndex, float newValue)
 {
 
-    if (parameterIndex == 1 ) //
+    if (parameterIndex == 1 )
     {
 
         for (int i = 0; i < ltheta.size(); i++)
@@ -549,76 +281,6 @@ void SpikeSorter::setParameter(int parameterIndex, float newValue)
 
         }
         ltheta(neuronCount) = log(alpha/(alpha+totalSpikesFound));
-
-    }
-    if (parameterIndex == 2 )
-    {
-        for (int i = 0; i < P; i++)
-        {
-            float power = -1*i;
-            for (int j = 0; j <P; j++)
-            {
-
-                sigma[i].set(j,node->getElectrodeNoiseVar(1)*pow(node->acfLag1, power++)); // NEEDS TO BE MULTIPED WITH COV(X);
-
-            }
-        }
-        for (int i = 0; i < P; i++)
-        {
-            for (int j = 0; j <P; j++)
-            {
-                if (i==j)
-                    sigma[i].set(j,node->getElectrodeNoiseVar(1));
-            }
-        }
-
-    }
-
-    if (parameterIndex == 3 )
-    {
-
-    }
-
-    if (parameterIndex == 4 ) // this exists to get the SVD
-    {
-        float temp; Array<float> temparray;
-        for (int i = 0; i < P; i++)
-        {
-            for (int j = 0; j < K; j++)
-            {
-                temp = node->dictionary.get(i,j);
-                temparray.add(temp);
-            }
-        }
-         MatrixTranspose(ReducedDictionary, ReducedDictionaryTranspose);
-
-    }
-
-    if (parameterIndex == 5)
-    {
-        ProcessorGraph* gr = getProcessorGraph();
-        Array<GenericProcessor*> p = gr->getListOfProcessors();
-
-        bool flag = false;
-        for (int k=0;k<p.size();k++)
-        {
-            if (p[k]->getName() == "Parameter Estimator")
-            {
-                node = (ParameterEstimator*)p[k];
-                checkIfAllParametersEstimated = node->allParametersEstimated;
-                //P = node->dictionary.getcoldim();
-                flag = true;
-            }
-
-        }
-        if (!flag)
-        {
-            std::cout << "Could not find a Parameter Estimator." << std::endl;
-        }
-    }
-    if (parameterIndex == 6)
-    {
-
 
     }
 
@@ -644,22 +306,22 @@ int SpikeSorter::findNeuronID()
 {
         float min = 0;
         idx = 0;
-        min = lthr[0];
+        min = lthr(0);
         for (int i= 0; i < lthr.size(); i++)
         {
-            if (min < lthr[i])
+            if (min < lthr(i))
             {
-                min = lthr[i];
+                min = lthr(i);
                 idx = i;
             }
         }
         float max = 0, idx1 = 0;
-        max = lon[idx][0];
-        for (int i= 0; i < lon[idx].size(); i++)
+        max = lon(idx, 0);
+        for (int i= 0; i < lon.row(idx).size(); i++)
         {
-            if (max < lon[idx][i])
+            if (max < lon(idx, i))
             {
-                max = lon[idx][i];
+                max = lon(idx, i);
                 idx1 = i;
             }
         }
@@ -755,7 +417,7 @@ void SpikeSorter::addNewSampleAndLikelihoodsToCurrentSpikeObject(float sample, M
 
 void SpikeSorter::updateAllSortingParameters()
 {
-    int neuronID = currentSpike.neuronID;
+    /*int neuronID = currentSpike.neuronID;
     lambda = sigma.inverse();
     Qmat = ReducedDictionaryTranspose*lambda*ReducedDictionary + lamclus(neuronID);
 
@@ -778,7 +440,7 @@ void SpikeSorter::updateAllSortingParameters()
     phi(neuronID) = phi(neuronID) + ((kappa(neuronID)/(kappa(neuronID)+1))*((yhat - muu(neuronID))*(yhat - muu(neuronID)).transpose()).array()).matrix() + Qmat.inverse;
     kappa(neuronID) = kappa(neuronID) + 1;
     nu(neuronID) = nu(neuronID) + 1;
-    lamclus(neuronID) = phi.HouseholderQR().solve(nu(neuronID));
+    lamclus(neuronID) = phi.HouseholderQR().solve(nu(neuronID));*/
 }
 
 
@@ -795,7 +457,7 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
     {
 
         ProcessorGraph* gr = getProcessorGraph();
-        Array<GenericProcessor*> p = gr->getListOfProcessors();
+        juce::Array<GenericProcessor*> p = gr->getListOfProcessors();
 
         bool flag = false;
         for (int k=0;k<p.size();k++)
@@ -841,14 +503,15 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
 
 
             //Array<float>* test = sigma.getRawDataPointer();
-            Array<double> powers;
+            ArrayXd powers = VectorXd::Zero(P);
             double start = 1;
 
             for (int i = 0; i < P; i++)
             {
-                powers.add(start);
+                powers(i) = start;
                 start *= node->acfLag1;
             }
+
             float powerIndex;
             for (int i = 0; i < P; i++)
             {
@@ -859,7 +522,7 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
                     if ( i == j )
                         sigma(i,j) = node->getElectrodeNoiseVar(0);
                     else
-                        sigma(i,j) = node->getElectrodeNoiseVar(0)*powers.getUnchecked(abs(powerIndex));
+                        sigma(i,j) = node->getElectrodeNoiseVar(0)*powers(abs(powerIndex));
                     powerIndex++;
                 }
             }
@@ -870,7 +533,6 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
 
 
             //double startTime1 = Time::getMillisecondCounterHiRes();
-            invertSquareTwoDimMatrix(sigma, proxy);
             //double stopTime1 = Time::getMillisecondCounterHiRes();
             //log1->writeToLog("Time for 40 x 40 inverse is = " + String(stopTime1 - startTime1));
 
@@ -878,7 +540,7 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
 
             logDeterminantOfLambda = lambda.determinant();
 
-            std::cout<<"reached line 3 and det is" << logDeterminantOfLambda << ReducedDictionary.size() << "x" << ReducedDictionary[0].size() << "//" << std::endl;
+            std::cout<<"reached line 3 and det is" << logDeterminantOfLambda << ReducedDictionary.size() << "x" << ReducedDictionary.row(0).size() << "//" << std::endl;
 
             for (int i = 0; i < P; i++)
             {
@@ -892,7 +554,7 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
             std::cout<<"Params copied and nSamples is" << nSamples << std::endl;
         }
 
-        for (int i = 0; i < (*node).electrodes.size(); i++)
+        /*for (int i = 0; i < (*node).electrodes.size(); i++)
         {
             sampleIndex = 0;
             activeChannels = 0;
@@ -993,7 +655,7 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
                             sum = 0;
                             for (int i = 0; i <= neuronCount; i++ )
                             {
-                                sum += exp(likelihoodPerNeuron(i);
+                                sum += exp(likelihoodPerNeuron(i));
                             }
 
                             Hadj = log(sum);
@@ -1030,7 +692,7 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
         masterSampleIndex += sampleIndex;
 
         stopTime = Time::getMillisecondCounterHiRes();
-        log1->writeToLog("Duration taken was " + String(stopTime - startTime) + "ms for nSamples = " + String(nSamples));
+        log1->writeToLog("Duration taken was " + String(stopTime - startTime) + "ms for nSamples = " + String(nSamples));*/
 
     }
 
