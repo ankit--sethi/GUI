@@ -140,27 +140,27 @@ public:
     float pii;
     //Array <float> nu;
     Eigen::RowVectorXd nu;
-    juce::Array <MatrixXd> phi;
-    juce::Array <MatrixXd> lamclus;
-    juce::Array <MatrixXd> lamclusinv;
-    juce::Array <MatrixXd> R;
-    juce::Array <MatrixXd> Rinv;
-    MatrixXd Qt;
-    MatrixXd muu0;
-    RowVectorXd kappa;
-    MatrixXd muu;
-    MatrixXd lambda;
+    juce::Array <Eigen::MatrixXd> phi;
+    juce::Array <Eigen::MatrixXd> lamclus;
+    juce::Array <Eigen::MatrixXd> lamclusinv;
+    juce::Array <Eigen::MatrixXd> R;
+    juce::Array <Eigen::MatrixXd> Rinv;
+    Eigen::MatrixXd Qt;
+    Eigen::MatrixXd muu0;
+    Eigen::RowVectorXd kappa;
+    Eigen::MatrixXd muu;
+    Eigen::MatrixXd lambda;
     double logDeterminantOfLambda;
-    MatrixXd sigma;
-    MatrixXd Q;
-    MatrixXd Qinv;
-    MatrixXd ReducedDictionary; //This is A (PxK)
-    MatrixXd ReducedDictionaryTranspose;
-    MatrixXd Qmat;
-    VectorXd yhat;
-    VectorXd mhat;
-    MatrixXd Qhat;
-    VectorXd xwindLonger;
+    Eigen::MatrixXd sigma;
+    Eigen::MatrixXd Q;
+    Eigen::MatrixXd Qinv;
+    Eigen::MatrixXd ReducedDictionary; //This is A (PxK)
+    Eigen::MatrixXd ReducedDictionaryTranspose;
+    Eigen::MatrixXd Qmat;
+    Eigen::VectorXd yhat;
+    Eigen::VectorXd mhat;
+    Eigen::MatrixXd Qhat;
+    Eigen::VectorXd xwindLonger;
     unsigned int neuronCount; // this is C in the code
 
     double Hadj;
@@ -169,9 +169,9 @@ public:
 
     bool suppress;
     bool test;
-    RowVectorXd tlastspike;
-    RowVectorXd ltheta;
-    RowVectorXd ngamma;
+    Eigen::RowVectorXd tlastspike;
+    Eigen::RowVectorXd ltheta;
+    Eigen::RowVectorXd ngamma;
 
     float threshold;
     int totalSpikesFound;
@@ -186,8 +186,8 @@ public:
 
     juce::Array <CircularQueue*> circbuffer;
 
-    VectorXd xwind; //remember, xwind is "of the moment", xwind lacks history
-    VectorXd xwindloop;
+    Eigen::VectorXd xwind; //remember, xwind is "of the moment", xwind lacks history
+    Eigen::VectorXd xwindloop;
 
     bool setLambda;
 
@@ -234,8 +234,8 @@ private:
     SortedSpikeObject currentSpike;
     int currentIndex;  // this is for keeping track of indices after threshold crossing
 
-    VectorXd lthr;
-    MatrixXd lon;
+    Eigen::VectorXd lthr;
+    Eigen::MatrixXd lon;
 
     bool buffersArePlush;
 
@@ -248,7 +248,7 @@ private:
 
     float likelihoodNoSpike;
     float maximumLikelihoodPerNeuron;
-    RowVectorXd likelihoodPerNeuron;
+    Eigen::RowVectorXd likelihoodPerNeuron;
 
     uint8_t* spikeBuffer;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SpikeSorter);
