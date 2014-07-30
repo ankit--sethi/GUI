@@ -18,7 +18,7 @@
 #include <fstream>
 
 
-//using namespace Eigen;
+using namespace std;
 
 
 #define PI 3.1415926535897932384626433832795
@@ -138,7 +138,7 @@ SpikeSorter::SpikeSorter()
 
 
     K = 3; // number of SVD components to use; need to make this a control
-    phi0 = Eigen::MatrixXd::Zero(K,K);
+    phi0 = (Eigen::MatrixXd::Identity(K,K).array()*0.1).matrix();
     //check phi0!!!
     number = 0;
     apii = 1;
@@ -191,13 +191,13 @@ SpikeSorter::SpikeSorter()
     yhat = Eigen::VectorXd::Constant(K, 1, 0);
     ReducedDictionary = Eigen::MatrixXd::Constant(P, K, 0);
     ReducedDictionaryTranspose = Eigen::MatrixXd::Constant(K, P, 0);
-    ReducedDictionaryTranspose = ReducedDictionary.transpose();
 
     neuronCount = 0; // This is 'C' in the MATLAB code.
     //nz = 0; // Not sure what this does. Possible the same thing.
     setParameter(1,0);
+    xwind = Eigen::VectorXd::Zero(P);
 
-    threshold = log(pii/(1-pii));
+    threshold = std::log(pii/(1-pii));
     std::cout<< "Threshold is " << threshold;
 
     suppresslikelihood = 1e5;
@@ -421,7 +421,7 @@ void SpikeSorter::updateAllSortingParameters()
     Qmat = ReducedDictionaryTranspose*lambda*ReducedDictionary + lamclus[neuronID];
 
     Eigen::HouseholderQR<Eigen::MatrixXd> QmatQR(Qmat);
-    yhat = QmatQR.solve(ReducedDictionaryTranspose*lambda*xwindLonger.segment(idx,idx + P - 1)) + lamclus[neuronID]*muu.row(neuronID);
+    yhat = Qmat.inverse()*(ReducedDictionaryTranspose*lambda*xwindLonger.segment(idx,idx + P - 1)) + lamclus[neuronID]*muu.row(neuronID);
 
     ngamma(neuronID) = ngamma(neuronID) + 1;
     deltaT = masterSampleIndex + sampleIndex -P - range + idx - tlastspike(neuronID);
@@ -434,11 +434,9 @@ void SpikeSorter::updateAllSortingParameters()
     muu0.row(neuronID) = ((kappa(neuronID)*muu0.row(neuronID).array() + yhat.array())/(kappa(neuronID)+1)).matrix();
     Qhat = ((1/tau)*Eigen::MatrixXd::Identity(K,K).array()*(1-ebet*ebet) + R[neuronID].inverse().array()*(ebet*ebet)).matrix();
     R.setUnchecked(neuronID, Qhat.inverse() + lamclus[neuronID]);
-    Eigen::HouseholderQR<Eigen::MatrixXd> RneuronIDQR(R[neuronID]);
-    Eigen::HouseholderQR<Eigen::MatrixXd> QhatQR(Qhat);
-    muu.row(neuronID) = RneuronIDQR.solve(QhatQR.solve(mhat) + lamclus[neuronID]*yhat);
+    muu.row(neuronID) = R[neuronID].inverse()*(Qhat.inverse()*(mhat) + lamclus[neuronID]*yhat);
     Eigen::MatrixXd temp = ReducedDictionaryTranspose*lambda*xwindLonger.segment(idx,idx+ P-1) + lamclus[neuronID]*muu.row(neuronID);
-    yhat = QmatQR.solve(temp);
+    yhat = Qmat.inverse()*(temp);
     double constant = (kappa(neuronID)/(kappa(neuronID) + 1));
     Eigen::MatrixXd trans = (yhat - muu.row(neuronID))*((yhat - muu.row(neuronID)).transpose());
     Eigen::MatrixXd newphi = (constant*trans.array()).matrix();
@@ -528,25 +526,19 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
                     if ( i == j )
                         sigma(i,j) = node->getElectrodeNoiseVar(0);
                     else
-                        sigma(i,j) = node->getElectrodeNoiseVar(0)*powers(abs(powerIndex));
+                        sigma(i,j) = node->getElectrodeNoiseVar(0)*powers(std::abs(powerIndex));
                     powerIndex++;
                 }
             }
 
-
             std::cout<< " ACF LAG in Spike Sorter is " << node->acfLag1 << " and the Var is " << node->getElectrodeNoiseVar(0) << "  "  << std::endl;
-            //Array<Array<long double>> proxy;
-
-
-            //double startTime1 = Time::getMillisecondCounterHiRes();
-            //double stopTime1 = Time::getMillisecondCounterHiRes();
-            //log1->writeToLog("Time for 40 x 40 inverse is = " + String(stopTime1 - startTime1));
-
+            double startTime1 = Time::getMillisecondCounterHiRes();
             lambda = sigma.inverse();
-
-            logDeterminantOfLambda = lambda.determinant();
-
-            std::cout<<"reached line 3 and det is" << logDeterminantOfLambda << ReducedDictionary.size() << "x" << ReducedDictionary.row(0).size() << "//" << std::endl;
+            double stopTime1 = Time::getMillisecondCounterHiRes();
+            log1->writeToLog("Time for 40 x 40 inverse is = " + String(stopTime1 - startTime1));
+            Eigen::HouseholderQR<Eigen::MatrixXd> lambdaQR(lambda);
+            logDeterminantOfLambda = lambdaQR.logAbsDeterminant();
+            std::cout<<"reached line 3 and det is = " << logDeterminantOfLambda << " and " << ReducedDictionary.col(0).size() << "x" << ReducedDictionary.row(0).size() << "//" << std::endl;
 
             for (int i = 0; i < P; i++)
             {
@@ -572,7 +564,6 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
                     activeChannels++;
                     while (sampleIndex < nSamples)
                     {
-
                         int currentChannel = *(node->electrodes[i]->channels+chan);
 
                         float sample = getNextSample(currentChannel);
@@ -581,7 +572,7 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
                         circbuffer[i]->enqueue(sample);
 
                         pii = (apii + totalSpikesFound)/(bpii + masterSampleIndex);
-                        threshold = log(pii/(1-pii));
+                        threshold = std::log(pii/(1-pii));
 
 
                         if(circbuffer[i]->isBufferPlush(P))
@@ -595,12 +586,11 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
                             }
 
                             xwindloop = xwind;
-
                             for (int i = 0; i < ltheta.size(); i++)
                             {
                                 if (!checkIfLogIsInf(ngamma(i),(alpha+totalSpikesFound)))
                                 {
-                                    ltheta(i) = (log(ngamma(i)/(alpha+totalSpikesFound)));
+                                    ltheta(i) = (std::log(ngamma(i)/(alpha+totalSpikesFound)));
 
                                 }
                                 else
@@ -609,13 +599,10 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
                                 }
 
                             }
-                            ltheta(neuronCount) = log(alpha/(alpha+totalSpikesFound));
+                            ltheta(neuronCount) = std::log(alpha/(alpha+totalSpikesFound));
 
-                            Eigen::HouseholderQR<Eigen::MatrixXd> sigmaQR(sigma);
-
-                            double Quad = (xwind*sigmaQR.solve(xwind)).squaredNorm();
-
-                            likelihoodNoSpike = (-1*P/2)*log(2*PI) + 0.5*logDeterminantOfLambda - 0.5*Quad;
+                            double Quad = (xwind.dot(lambda*xwind));
+                            likelihoodNoSpike = (-1*P/2)*std::log(2*PI) + 0.5*logDeterminantOfLambda - 0.5*Quad;
 
                             for (int j = 0; j < neuronCount; j++)
                             {
@@ -623,33 +610,31 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
                                 Eigen::HouseholderQR<Eigen::MatrixXd> RQR(R[j]);
                                 Q = sigma + ReducedDictionary*(RQR.solve(ReducedDictionaryTranspose) + lamclusQR.solve(ReducedDictionaryTranspose));
                                 xwindloop = xwind - ReducedDictionary*muu.col(j);
-                                double sum = Q.householderQr().logAbsDeterminant();
-
-
                                 Eigen::HouseholderQR<Eigen::MatrixXd> QQR(Q);
+                                double sum = QQR.logAbsDeterminant();
 
                                 if( ( (masterSampleIndex + sampleIndex) - tlastspike(j)) < 40000*50/10000 )  // THIS NEEDS TO BE INVESTIGATED
-                                    likelihoodPerNeuron(j) = -(0.5*P)*log(2*PI) - sum - suppresslikelihood - 0.5*(xwindloop*QQR.solve(xwindloop)).squaredNorm();
+                                    likelihoodPerNeuron(j) = -(0.5*P)*std::log(2*PI) - sum - suppresslikelihood - 0.5*((xwindloop*QQR.solve(xwindloop)).squaredNorm());
                                 else
-                                    likelihoodPerNeuron(j) = -(0.5*P)*log(2*PI) - sum - 0.5*(xwindloop*QQR.solve(xwindloop)).squaredNorm();
+                                    likelihoodPerNeuron(j) = -(0.5*P)*std::log(2*PI) - sum - 0.5*((xwindloop*QQR.solve(xwindloop)).squaredNorm());
                             }
-                            Eigen::HouseholderQR<Eigen::MatrixXd> lamclusQR(lamclus[neuronCount]);
-                            Eigen::HouseholderQR<Eigen::MatrixXd> RQR(R[neuronCount]);
-                            Q = sigma + ReducedDictionary*(RQR.solve(ReducedDictionaryTranspose) + lamclusQR.solve(ReducedDictionaryTranspose));
+
+                            Q = sigma + ReducedDictionary*(R[neuronCount].inverse() + lamclus[neuronCount].inverse())*(ReducedDictionaryTranspose);
                             Eigen::HouseholderQR<Eigen::MatrixXd> QQR(Q);
                             double sum = QQR.logAbsDeterminant();
-                            likelihoodPerNeuron(neuronCount) = -(0.5*P)*log(2*PI) - sum - 0.5*(xwind*QQR.solve(xwind)).squaredNorm();
-
-
+                            likelihoodPerNeuron(neuronCount) = -(0.5*P)*std::log(2*PI) - sum - 0.5*(xwind.dot(Q.inverse()*xwind));
+                            //cout<< R[neuronCount];
+                            //cout<< "BA" <<  lamclus[neuronCount];
                             for (int i = 0; i <= neuronCount; i++ )
                             {
                                 likelihoodPerNeuron(i) =  likelihoodPerNeuron(i) + ltheta(i);
                                 //std::cout << "And " << likelihoodPerNeuron[i] << " is the Likelihood per Neuron for " << i << " and " << " ltheta is " << ltheta[i].getVar() << std::endl;
                             }
+
                             for (int i = 0; i <= neuronCount; i++ )
                             {
                                 if (i == 0)
-                                    maximumLikelihoodPerNeuron = likelihoodPerNeuron(i);
+                                    {maximumLikelihoodPerNeuron = likelihoodPerNeuron(i);}
                                 else if(maximumLikelihoodPerNeuron < likelihoodPerNeuron(i))
                                     maximumLikelihoodPerNeuron = likelihoodPerNeuron(i);
                             }
@@ -660,15 +645,14 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
                             sum = 0;
                             for (int i = 0; i <= neuronCount; i++ )
                             {
-                                sum += exp(likelihoodPerNeuron(i));
+                                sum += std::exp(likelihoodPerNeuron(i));
                             }
 
-                            Hadj = log(sum);
+                            Hadj = std::log(sum);
 
                             likelihoodThreshold = likelihoodNoSpike - maximumLikelihoodPerNeuron - Hadj;
-
-                            //std::cout<< "Likelihood Threshold is = " << likelihoodThreshold << " and the threshold is " << threshold << std::endl;
-
+                            //cout<< Hadj;
+                            std::cout<< "Likelihood Threshold is = " << likelihoodThreshold << " and the threshold is " << threshold << std::endl;
                             if (likelihoodThreshold < threshold)
                                 spikeDetected = true;
 
@@ -697,7 +681,7 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
         masterSampleIndex += sampleIndex;
 
         stopTime = Time::getMillisecondCounterHiRes();
-        log1->writeToLog("Duration taken was " + String(stopTime - startTime) + "ms for nSamples = " + String(nSamples));
+        //log1->writeToLog("Duration taken was " + String(stopTime - startTime) + "ms for nSamples = " + String(nSamples));
 
     }
 
