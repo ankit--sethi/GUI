@@ -203,8 +203,6 @@ public:
     }
 
     bool checkIfAllParametersEstimated;
-
-    void getLikelihoodPerNeuron(int FoundNeuronIndex, float tmp);
     void collectSamplesForSpikeObject(int electrodeIndex, float trigSample);
     void addNewSampleAndLikelihoodsToCurrentSpikeObject(float sample, MidiBuffer &eventBuffer, int chan);
     int findNeuronID();

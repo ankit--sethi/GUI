@@ -294,14 +294,6 @@ float SpikeSorter::getNextSample(int& chan)
             return 0;
 }
 
-
-
-void SpikeSorter::getLikelihoodPerNeuron(int FoundNeuronIndex, float tmp)
-{
-    //std::cout << "The inner product here is " << getaBaInnerProductSum(xwind, Qinv);
-
-}
-
 int SpikeSorter::findNeuronID()
 {
         float min = 0;
@@ -389,13 +381,13 @@ void SpikeSorter::addNewSampleAndLikelihoodsToCurrentSpikeObject(float sample, M
         {
             lon(currentIndex, i) = likelihoodPerNeuron(i);
         }
-        cout << xwind.size() << " is the xwindsize " << "and the currentIndex is" << currentIndex << "// and the xwindlonger size is " << xwindLonger.size() << "//";
+        //cout << xwind.size() << " is the xwindsize " << "and the currentIndex is" << currentIndex << "// and the xwindlonger size is " << xwindLonger.size() << "//";
         xwindLonger(xwind.size() + currentIndex - 1) = sample;
         currentIndex++;
     }
     else
     {
-        cout<< "reached start of else";
+        //cout<< "reached start of else";
         spikeDetected = false;
         samplesBeingCollected = false;
         double minthr = lthr.minCoeff(&idx);
@@ -407,7 +399,7 @@ void SpikeSorter::addNewSampleAndLikelihoodsToCurrentSpikeObject(float sample, M
         }
         currentSpike.neuronID = Cnew;
         currentIndex = 0;
-        cout << "The INDEX IS //" << idx << "//";
+        //cout << "The INDEX IS //" << idx << "//";
         for (int i = 0; i < P; i ++)
         {
         currentSpike.data[i] = uint16(xwindLonger(idx + i)/ channels[chan]->bitVolts + 32768);
@@ -433,32 +425,19 @@ void SpikeSorter::addNewSampleAndLikelihoodsToCurrentSpikeObject(float sample, M
 
 void SpikeSorter::updateAllSortingParameters()
 {
-      //cout<<"reached here!!!!";
     int neuronID = currentSpike.neuronID;
-    //cout<<"reached here!!!!1.1";
     Qmat = ReducedDictionaryTranspose*lambda*ReducedDictionary + lamclus[neuronID];
-    cout<<"reached here!!!!1.2";
     yhat = Qmat.inverse()*(ReducedDictionaryTranspose*lambda*(xwindLonger.segment(idx, P)) + lamclus[neuronID]*muu.col(neuronID));
-    cout<<"reached here!!34!!";
     ngamma(neuronID) = ngamma(neuronID) + 1;
     deltaT = masterSampleIndex + sampleIndex -P - range + idx - tlastspike(neuronID);
     tlastspike(neuronID) = masterSampleIndex + sampleIndex - P - range + idx;
     double ebet = std::exp(-1*double(beta)*double(deltaT));
-    //std::cout << "Ebet and delta T is" << ebet << "//" << deltaT << "//";
-    cout<<"reached here!!34r44444!!";
-    //Eigen::MatrixGetRowOrColumn(muu,false, neuronID,t);
     mhat = (muu0.col(neuronID).array()*(1-ebet) + muu.col(neuronID).array()*ebet).matrix();
-    cout<<"BANANA";
     muu0.col(neuronID) = ((kappa(neuronID)*muu0.col(neuronID).array() + yhat.array())/(kappa(neuronID)+1)).matrix();
-    cout<<"//ONEBANANA";
     Qhat = ((1/tau)*Eigen::MatrixXd::Identity(K,K).array()*(1-ebet*ebet) + R[neuronID].inverse().array()*(ebet*ebet)).matrix();
-    cout<<"//TWOBANANA";
     R.setUnchecked(neuronID, Qhat.inverse() + lamclus[neuronID]);
-    cout<<"//ThreeBANANA";
     muu.col(neuronID) = R[neuronID].inverse()*(Qhat.inverse()*(mhat) + lamclus[neuronID]*yhat);
-    cout<<"//FOURBANANA";
     Eigen::MatrixXd temp = ReducedDictionaryTranspose*lambda*xwindLonger.segment(idx,P) + lamclus[neuronID]*muu.col(neuronID);
-    cout<<"reached here!!34r44444AAAAAAAAAAAAAAa!!";
     yhat = Qmat.inverse()*(temp);
     double constant = (kappa(neuronID)/(kappa(neuronID) + 1));
     Eigen::MatrixXd trans = (yhat - muu.col(neuronID))*((yhat - muu.col(neuronID)).transpose());
@@ -633,7 +612,7 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
                                 xwindloop = xwind - ReducedDictionary*muu.col(j);
                                 Eigen::HouseholderQR<Eigen::MatrixXd> QQR(Q);
                                 double sum = QQR.logAbsDeterminant();
-
+                                cout << xwindloop*(Q.householderQr().solve(xwindloop));
                                 if( ( (masterSampleIndex + sampleIndex) - tlastspike(j)) < 40000*50/10000 )  // THIS NEEDS TO BE INVESTIGATED
                                     likelihoodPerNeuron(j) = -(0.5*P)*std::log(2*PI) - sum - suppresslikelihood - 0.5*(xwindloop.dot(Q.inverse()*xwindloop));
                                 else
