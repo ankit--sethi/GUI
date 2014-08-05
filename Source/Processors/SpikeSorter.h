@@ -102,7 +102,7 @@ class CircularQueue
         ~CircularQueue() { }
         void setsize(int siz);
         void enqueue(float item);
-        juce::Array<float> show(int index);
+        void show(int index, Eigen::VectorXd& returnedX);
         void dequeue();
         bool isBufferPlush(int minsize);
         int getsize();
@@ -164,6 +164,9 @@ public:
     unsigned int neuronCount; // this is C in the code
 
     double Hadj;
+    double logdetQ;
+    double logPlusDetTermForNoiseLL;
+    double logPlusDetTermForNewNeuronLL;
     int idx; //this is Q in the second half
     float likelihoodThreshold;
 
@@ -247,6 +250,12 @@ private:
     float likelihoodNoSpike;
     float maximumLikelihoodPerNeuron;
     Eigen::RowVectorXd likelihoodPerNeuron;
+    double Hadjsum;
+    bool thingsHaveChanged;
+
+    Eigen::HouseholderQR<Eigen::MatrixXd> lambdaQR;
+    Eigen::HouseholderQR<Eigen::MatrixXd> QQR;
+    double Quad;
 
     uint8_t* spikeBuffer;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SpikeSorter);
