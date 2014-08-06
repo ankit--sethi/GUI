@@ -56,7 +56,7 @@ ParameterEstimator::ParameterEstimator()
         SVDmethod = true;
         cssp = 0;
         delta = 0;
-        sampleRate = 30000;
+        sampleRate = 10000;
         allParametersEstimated = false;
 
 }
@@ -150,7 +150,7 @@ bool ParameterEstimator::addElectrode(int nChans)
 
     newElectrode->name = newName;
     newElectrode->numChannels = nChans;
-    newElectrode->prePeakSamples = 8;
+    newElectrode->prePeakSamples = 4;
     newElectrode->postPeakSamples = 32;
     newElectrode->paramAveragingCount = 0;
     newElectrode->mu = 0;
@@ -379,13 +379,11 @@ void ParameterEstimator::addWaveformToSpikeObject(SpikeObject* s,
 
     if (isChannelActive(electrodeNumber, currentChannel))
     {
-
         for (int sample = 0; sample < spikeLength; sample++)
         {
 
             // warning -- be careful of bitvolts conversion
             s->data[currentIndex] = uint16(getNextSample(*(electrodes[electrodeNumber]->channels+currentChannel)) / channels[chan]->bitVolts + 32768);
-
             currentIndex++;
             sampleIndex++;
 

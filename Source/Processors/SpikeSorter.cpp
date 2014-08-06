@@ -101,10 +101,19 @@ void CircularQueue::dequeue()
     }
 }
 
-void CircularQueue::show(int index, Eigen::VectorXd& returnedX)
+void CircularQueue::show(int index, Eigen::VectorXd& returnedX) // caution: works right only if size of circular buffer = P
 {
-    for(int i = 0; i < index; i++)
-        returnedX(i) = array[i];
+    int count  = 0, i = front;
+    while (count < index)
+    {
+        returnedX(count) = array[i];
+        i++;
+        if (i > size)
+        {
+            i = 0;
+        }
+        count++;
+    }
 }
 
 bool CircularQueue::isBufferPlush(int minsize)
@@ -134,7 +143,7 @@ SpikeSorter::SpikeSorter()
     number = 0;
     apii = 1;
     bpii = 1e7;
-    beta = 1/(30*(40000));
+    beta = 1/(30*(10000));
     //std::cout << " Sample RATE is " << getSampleRate() << "//";
     tau = 10;
 
@@ -147,7 +156,7 @@ SpikeSorter::SpikeSorter()
     Cmax = 50;  //maximum possible number of neurons present
     curndx = 0; //used to index current location in buffer
     lookahead = 500; //functionally, it is the size of the buffer
-    range = 20; // defines basically the width of a spike
+    range = 15; // defines basically the width of a spike
     // setting sigma
     sigma = Eigen::MatrixXd::Zero(P,P);
 
@@ -393,18 +402,21 @@ void SpikeSorter::addNewSampleAndLikelihoodsToCurrentSpikeObject(float sample, M
         //cout << lon;
         //cout << endl << "and the idx is" << idx <<endl;
 
-        cout << " // Cnew is //" << Cnew;
-        if (Cnew == neuronCount)
+        //cout << " // Cnew and neuronCount is//" << Cnew << " // " << neuronCount;
+        if (Cnew + 1 == neuronCount)
         {
-            cout<< "reached here so apparently new neuron" << endl;
+            //cout<< "reached here so apparently new neuron" << endl;
             neuronCount++;
         }
         currentSpike.neuronID = Cnew;
         currentIndex = 0;
         //cout << "The INDEX IS //" << idx << "//";
+        std::ofstream file("spikes.txt", std::fstream::app);
+        file << xwindLonger.transpose() << endl;
         for (int i = 0; i < P; i ++)
         {
-        currentSpike.data[i] = uint16(xwindLonger(idx + i)/ channels[chan]->bitVolts + 32768);
+        currentSpike.data[i] = uint16(xwindLonger(idx + i)/ channels[chan]->bitVolts + 32768);        
+
         }
         PackageCurrentSortedSpikeIntoBuffer(eventBuffer);
 
@@ -418,7 +430,7 @@ void SpikeSorter::addNewSampleAndLikelihoodsToCurrentSpikeObject(float sample, M
         //clear everything that needs to be cleared now! we look for new spikes
         //cout<< "reached till just before sorting parameters";
         updateAllSortingParameters();
-        std::cout << "One Spike Handled!" << std::endl;
+        //std::cout << "One Spike Handled!" << std::endl;
         totalSpikesFound += 1;
 
     }
@@ -428,30 +440,24 @@ void SpikeSorter::addNewSampleAndLikelihoodsToCurrentSpikeObject(float sample, M
 void SpikeSorter::updateAllSortingParameters()
 {
     int neuronID = currentSpike.neuronID;
-    cout << "reached here";
     Qmat = ReducedDictionaryTranspose*lambda*ReducedDictionary + lamclus[neuronID];
     yhat = Qmat.inverse()*(ReducedDictionaryTranspose*lambda*(xwindLonger.segment(idx, P)) + lamclus[neuronID]*muu.col(neuronID));
     ngamma(neuronID) = ngamma(neuronID) + 1;
-    cout << "reached here2";
     deltaT = masterSampleIndex + sampleIndex -P - range + idx - tlastspike(neuronID);
     tlastspike(neuronID) = masterSampleIndex + sampleIndex - P - range + idx;
     double ebet = std::exp(-1*double(beta)*double(deltaT));
-    cout << "reached here3";
     mhat = (muu0.col(neuronID).array()*(1-ebet) + muu.col(neuronID).array()*ebet).matrix();
     muu0.col(neuronID) = ((kappa(neuronID)*muu0.col(neuronID).array() + yhat.array())/(kappa(neuronID)+1)).matrix();
     Qhat = ((1/tau)*Eigen::MatrixXd::Identity(K,K).array()*(1-ebet*ebet) + R[neuronID].inverse().array()*(ebet*ebet)).matrix();
     R.setUnchecked(neuronID, Qhat.inverse() + lamclus[neuronID]);
-    cout << "reached here4";
     Rinv.setUnchecked(neuronID, Rinv[neuronID].inverse());
     muu.col(neuronID) = R[neuronID].inverse()*(Qhat.inverse()*(mhat) + lamclus[neuronID]*yhat);
     Eigen::MatrixXd temp = ReducedDictionaryTranspose*lambda*xwindLonger.segment(idx,P) + lamclus[neuronID]*muu.col(neuronID);
     yhat = Qmat.inverse()*(temp);
-    cout << "reached here5";
     double constant = (kappa(neuronID)/(kappa(neuronID) + 1));
     Eigen::MatrixXd trans = (yhat - muu.col(neuronID))*((yhat - muu.col(neuronID)).transpose());
     Eigen::MatrixXd newphi = (constant*trans.array()).matrix();
     Eigen::MatrixXd temp1 = newphi + phi[neuronID] + Qmat.inverse();
-    cout << "reached here6";
     phi.setUnchecked(neuronID, temp1);
     kappa(neuronID) = kappa(neuronID) + 1;
     nu(neuronID) = nu(neuronID) + 1;
@@ -595,7 +601,6 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
 
                             if(thingsHaveChanged)
                             {
-                                std::cout<< "came next things have changed " << std::endl;
                                 for (int i = 0; i < neuronCount; i++)
                                 {
                                     {
@@ -610,26 +615,21 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
 
                             Quad = double(xwind.transpose()*(lambdaQR.solve(xwind)));
                             likelihoodNoSpike = logPlusDetTermForNoiseLL -0.5*Quad;
-                            std::cout<< "reached noise ll" << std::endl;
+
                             for (int j = 0; j < neuronCount; j++)
                             {
                                 Q = sigma + ReducedDictionary*(Rinv[neuronCount] + lamclusinv[neuronCount])*ReducedDictionaryTranspose;
-                                cout<< "A" << std::endl;
                                 xwindloop = xwind - ReducedDictionary*muu.col(j);
-                                cout<< "B" << std::endl;
                                 Eigen::HouseholderQR<Eigen::MatrixXd> QQR(Q);
-                                cout<< "C" << std::endl;
                                 double sum = QQR.logAbsDeterminant();
-                                cout << xwindloop*(Q.householderQr().solve(xwindloop));
-                                cout<< "D" << std::endl;
-                                if( ( (masterSampleIndex + sampleIndex) - tlastspike(j)) < 40000*50/10000 )  // THIS NEEDS TO BE INVESTIGATED
-                                    likelihoodPerNeuron(j) = -(P*LOG2PIBY2) - sum - suppresslikelihood - 0.5*(xwindloop.dot(Q.inverse()*xwindloop));
+
+                                if( ( (masterSampleIndex + sampleIndex) - tlastspike(j)) < 10000*50/10000 )  // THIS NEEDS TO BE INVESTIGATED
+                                    likelihoodPerNeuron(j) = -(P*LOG2PIBY2) - sum - suppresslikelihood - 0.5*double(xwindloop.transpose()*(QQR.solve(xwindloop)));
                                 else
-                                    likelihoodPerNeuron(j) = -(P*LOG2PIBY2) - sum - 0.5*(xwindloop.dot(Q.inverse()*xwindloop));
+                                    likelihoodPerNeuron(j) = -(P*LOG2PIBY2) - sum - 0.5*double(xwindloop.transpose()*(QQR.solve(xwindloop)));
                             }
                             if (thingsHaveChanged)
                             {
-                                std::cout<< "reached second things have changed" << std::endl;
                                 Q = sigma + (ReducedDictionary*(Rinv[neuronCount] + lamclusinv[neuronCount]))*(ReducedDictionaryTranspose);
                                 QQR.compute(Q);
                                 logdetQ = QQR.logAbsDeterminant();
@@ -671,7 +671,7 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
                             {
                                 if (samplesBeingCollected)
                                 {
-                                    std::cout<< "came here to samplesBeingCollected " << std::endl;
+                                    //std::cout<< "came here to samplesBeingCollected " << std::endl;
                                     addNewSampleAndLikelihoodsToCurrentSpikeObject(sample, events, chan);
                                 }
                                 else
