@@ -185,7 +185,7 @@ SpikeSorter::SpikeSorter()
     }
     muu = Eigen::MatrixXd::Constant(K, Cmax, 0);
     muu0 = Eigen::MatrixXd::Constant(K, Cmax, 0);
-    Q = Eigen::MatrixXd::Random(P, P);
+    //Q = Eigen::MatrixXd::Random(P, P);
     Qinv = Eigen::MatrixXd::Constant(P, P, 0);
     Qhat = Eigen::MatrixXd::Constant(K, K, 0);
     Qmat = Eigen::MatrixXd::Constant(K, K, 0);
@@ -198,8 +198,6 @@ SpikeSorter::SpikeSorter()
     //nz = 0; // Not sure what this does. Possible the same thing.
     setParameter(1,0);
     xwind = Eigen::VectorXd::Zero(P);
-    Eigen::HouseholderQR<Eigen::MatrixXd> QQR(Q);
-    cout << 0.5 - xwind.transpose()*(QQR.solve(xwind));
 
     threshold = std::log(pii/(1-pii));
     std::cout<< "Threshold is " << threshold;
@@ -298,37 +296,6 @@ float SpikeSorter::getNextSample(int& chan)
             return 0;
 }
 
-int SpikeSorter::findNeuronID()
-{
-        float min = 0;
-        idx = 0;
-        min = lthr(0);
-        for (int i= 0; i < lthr.size(); i++)
-        {
-            if (min < lthr(i))
-            {
-                min = lthr(i);
-                idx = i;
-            }
-        }
-        float max = 0, idx1 = 0;
-        max = lon(idx, 0);
-        for (int i= 0; i < lon.row(idx).size(); i++)
-        {
-            if (max < lon(idx, i))
-            {
-                max = lon(idx, i);
-                idx1 = i;
-            }
-        }
-
-        if (idx1 == neuronCount)
-        {
-            neuronCount = idx1;
-        }
-        return idx1;
-}
-
 void SpikeSorter::PackageCurrentSortedSpikeIntoBuffer(MidiBuffer& eventBuffer1)
 {
     //std::cout << "ohh noes";
@@ -344,7 +311,6 @@ void SpikeSorter::PackageCurrentSortedSpikeIntoBuffer(MidiBuffer& eventBuffer1)
 
 void SpikeSorter::collectSamplesForSpikeObject(int electrodeIndex, float trigSample)
 {
-    //cout<<"reached here!!!!11111vvvvvvvvv";
     samplesBeingCollected = true;
     currentIndex = 0;
     currentSpike.eventType = SORTEDSPIKE;
@@ -403,9 +369,9 @@ void SpikeSorter::addNewSampleAndLikelihoodsToCurrentSpikeObject(float sample, M
         //cout << endl << "and the idx is" << idx <<endl;
 
         //cout << " // Cnew and neuronCount is//" << Cnew << " // " << neuronCount;
-        if (Cnew + 1 == neuronCount)
+        if (Cnew == neuronCount)
         {
-            //cout<< "reached here so apparently new neuron" << endl;
+            cout<< "reached here so apparently new neuron" << endl;
             neuronCount++;
         }
         currentSpike.neuronID = Cnew;
@@ -450,7 +416,7 @@ void SpikeSorter::updateAllSortingParameters()
     muu0.col(neuronID) = ((kappa(neuronID)*muu0.col(neuronID).array() + yhat.array())/(kappa(neuronID)+1)).matrix();
     Qhat = ((1/tau)*Eigen::MatrixXd::Identity(K,K).array()*(1-ebet*ebet) + R[neuronID].inverse().array()*(ebet*ebet)).matrix();
     R.setUnchecked(neuronID, Qhat.inverse() + lamclus[neuronID]);
-    Rinv.setUnchecked(neuronID, Rinv[neuronID].inverse());
+    Rinv.setUnchecked(neuronID, R[neuronID].inverse());
     muu.col(neuronID) = R[neuronID].inverse()*(Qhat.inverse()*(mhat) + lamclus[neuronID]*yhat);
     Eigen::MatrixXd temp = ReducedDictionaryTranspose*lambda*xwindLonger.segment(idx,P) + lamclus[neuronID]*muu.col(neuronID);
     yhat = Qmat.inverse()*(temp);
@@ -464,6 +430,7 @@ void SpikeSorter::updateAllSortingParameters()
     lamclus.setUnchecked(neuronID, (phi[neuronID].inverse().array()*nu(neuronID)).matrix());
     lamclusinv.setUnchecked(neuronID, lamclus[neuronID].inverse());
     thingsHaveChanged = 1;
+    Q.setUnchecked(neuronID, sigma + ReducedDictionary*(Rinv[neuronID] + lamclusinv[neuronID])*ReducedDictionaryTranspose);
 }
 
 
@@ -565,6 +532,10 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
                 }
             }
             ReducedDictionaryTranspose = ReducedDictionary.transpose();
+            for (int i = 0; i < Cmax; i++)
+            {
+                Q.add(sigma + ReducedDictionary*(Rinv[i] + lamclusinv[i])*ReducedDictionaryTranspose);
+            }
             paramsCopied = true;
             std::cout<<"Params copied and nSamples is" << nSamples << std::endl;
         }
@@ -618,22 +589,22 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
 
                             for (int j = 0; j < neuronCount; j++)
                             {
-                                Q = sigma + ReducedDictionary*(Rinv[neuronCount] + lamclusinv[neuronCount])*ReducedDictionaryTranspose;
+                                //Q = sigma + ReducedDictionary*(Rinv[neuronCount] + lamclusinv[neuronCount])*ReducedDictionaryTranspose;
                                 xwindloop = xwind - ReducedDictionary*muu.col(j);
-                                Eigen::HouseholderQR<Eigen::MatrixXd> QQR(Q);
+                                Eigen::HouseholderQR<Eigen::MatrixXd> QQR(Q[i]);
                                 double sum = QQR.logAbsDeterminant();
 
                                 if( ( (masterSampleIndex + sampleIndex) - tlastspike(j)) < 10000*50/10000 )  // THIS NEEDS TO BE INVESTIGATED
-                                    likelihoodPerNeuron(j) = -(P*LOG2PIBY2) - sum - suppresslikelihood - 0.5*double(xwindloop.transpose()*(QQR.solve(xwindloop)));
+                                    likelihoodPerNeuron(j) = -(P*LOG2PIBY2) - 0.5*sum - suppresslikelihood - 0.5*double(xwindloop.transpose()*(QQR.solve(xwindloop)));
                                 else
-                                    likelihoodPerNeuron(j) = -(P*LOG2PIBY2) - sum - 0.5*double(xwindloop.transpose()*(QQR.solve(xwindloop)));
+                                    likelihoodPerNeuron(j) = -(P*LOG2PIBY2) - 0.5*sum - 0.5*double(xwindloop.transpose()*(QQR.solve(xwindloop)));
                             }
                             if (thingsHaveChanged)
                             {
-                                Q = sigma + (ReducedDictionary*(Rinv[neuronCount] + lamclusinv[neuronCount]))*(ReducedDictionaryTranspose);
-                                QQR.compute(Q);
+                                //Q = sigma + (ReducedDictionary*(Rinv[neuronCount] + lamclusinv[neuronCount]))*(ReducedDictionaryTranspose);
+                                QQR.compute(Q[i]);
                                 logdetQ = QQR.logAbsDeterminant();
-                                logPlusDetTermForNewNeuronLL = ((P*LOG2PIBY2) - logdetQ);
+                                logPlusDetTermForNewNeuronLL = -(P*LOG2PIBY2) - 0.5*logdetQ;
                                 thingsHaveChanged = 0;
                             }
                             likelihoodPerNeuron(neuronCount) = logPlusDetTermForNewNeuronLL - 0.5*double((xwind.transpose()*(QQR.solve(xwind))));

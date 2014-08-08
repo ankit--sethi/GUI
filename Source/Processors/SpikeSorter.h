@@ -152,7 +152,8 @@ public:
     Eigen::MatrixXd lambda;
     double logDeterminantOfLambda;
     Eigen::MatrixXd sigma;
-    Eigen::MatrixXd Q;
+    juce::Array<Eigen::MatrixXd> Q;
+    //Eigen::MatrixXd Q;
     Eigen::MatrixXd Qinv;
     Eigen::MatrixXd ReducedDictionary; //This is A (PxK)
     Eigen::MatrixXd ReducedDictionaryTranspose;
@@ -208,7 +209,6 @@ public:
     bool checkIfAllParametersEstimated;
     void collectSamplesForSpikeObject(int electrodeIndex, float trigSample);
     void addNewSampleAndLikelihoodsToCurrentSpikeObject(float sample, MidiBuffer &eventBuffer, int chan);
-    int findNeuronID();
     void PackageCurrentSortedSpikeIntoBuffer(MidiBuffer &eventBuffer1);
     void updateAllSortingParameters();
     void process(AudioSampleBuffer& buffer, MidiBuffer& events, int& nSamples);
