@@ -156,7 +156,7 @@ SpikeSorter::SpikeSorter()
     Cmax = 50;  //maximum possible number of neurons present
     curndx = 0; //used to index current location in buffer
     lookahead = 500; //functionally, it is the size of the buffer
-    range = 15; // defines basically the width of a spike
+    range = 20; // defines basically the width of a spike
     // setting sigma
     sigma = Eigen::MatrixXd::Zero(P,P);
 
@@ -170,7 +170,7 @@ SpikeSorter::SpikeSorter()
     Eigen::MatrixXd phi0nu0forRinv = phi0nu0forR.inverse();
     nu = Eigen::VectorXd::Constant(Cmax, nu0);
     kappa = Eigen::VectorXd::Constant(Cmax, kappa0);
-    ltheta = Eigen::VectorXd::Zero(Cmax);
+    ltheta = Eigen::VectorXf::Zero(Cmax);
     ngamma = Eigen::VectorXd::Zero(Cmax);
     tlastspike = Eigen::VectorXd::Zero(Cmax);
     likelihoodPerNeuron = Eigen::VectorXd::Zero(Cmax);
@@ -273,7 +273,7 @@ void SpikeSorter::setParameter(int parameterIndex, float newValue)
         {
             if (!checkIfLogIsInf(ngamma[i],(alpha+totalSpikesFound)))
             {
-                ltheta(i) = (log(ngamma[i]/(alpha+totalSpikesFound)));
+                ltheta(i) = (std::log(ngamma[i]/(alpha+totalSpikesFound)));
 
             }
             else
@@ -282,7 +282,7 @@ void SpikeSorter::setParameter(int parameterIndex, float newValue)
             }
 
         }
-        ltheta(neuronCount) = log(alpha/(alpha+totalSpikesFound));
+        ltheta(neuronCount) = std::log(alpha/(alpha+totalSpikesFound));
 
     }
 
@@ -377,11 +377,11 @@ void SpikeSorter::addNewSampleAndLikelihoodsToCurrentSpikeObject(float sample, M
         currentSpike.neuronID = Cnew;
         currentIndex = 0;
         //cout << "The INDEX IS //" << idx << "//";
-        std::ofstream file("spikes.txt", std::fstream::app);
-        file << xwindLonger.transpose() << endl;
+        //std::ofstream file("spikes.txt", std::fstream::app);
+        //file << xwindLonger.transpose() << endl;
         for (int i = 0; i < P; i ++)
         {
-        currentSpike.data[i] = uint16(xwindLonger(idx + i)/ channels[chan]->bitVolts + 32768);        
+        currentSpike.data[i] = uint16(xwindLonger(idx + i)/ channels[chan]->bitVolts + 32768);
 
         }
         PackageCurrentSortedSpikeIntoBuffer(eventBuffer);
@@ -575,16 +575,16 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
                                 for (int i = 0; i < neuronCount; i++)
                                 {
                                     {
-                                        ltheta(i) = (std::log(ngamma(i)/(alpha+totalSpikesFound)));
+                                        ltheta(i) = std::log(ngamma(i)) - std::log(alpha+totalSpikesFound);
 
                                     }
                                 }
 
-                                ltheta(neuronCount) = std::log(alpha/(alpha+totalSpikesFound));
+                                ltheta(neuronCount) = std::log(alpha) - std::log(alpha+totalSpikesFound);
 
                             }
 
-                            Quad = double(xwind.transpose()*(lambdaQR.solve(xwind)));
+                            Quad = float(xwind.transpose()*(lambdaQR.solve(xwind)));
                             likelihoodNoSpike = logPlusDetTermForNoiseLL -0.5*Quad;
 
                             for (int j = 0; j < neuronCount; j++)

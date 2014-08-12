@@ -122,7 +122,7 @@ public:
     ~SpikeSorter(){ }
     bool checkIfLogIsInf(float  num, float den);
 
-    float P; //column span of the dictionary
+    int P; //column span of the dictionary
     float alpha;
     float kappa0;
     float nu0;
@@ -166,7 +166,7 @@ public:
 
     double Hadj;
     double logdetQ;
-    double logPlusDetTermForNoiseLL;
+    float logPlusDetTermForNoiseLL;
     double logPlusDetTermForNewNeuronLL;
     int idx; //this is Q in the second half
     float likelihoodThreshold;
@@ -174,11 +174,11 @@ public:
     bool suppress;
     bool test;
     Eigen::RowVectorXd tlastspike;
-    Eigen::RowVectorXd ltheta;
+    Eigen::RowVectorXf ltheta;
     Eigen::RowVectorXd ngamma;
 
     float threshold;
-    int totalSpikesFound;
+    float totalSpikesFound;
 
 
     //Array <TwoDimMatrix> lamclusS;
@@ -228,7 +228,7 @@ private:
     //Array<Electrode*> electrodes;
     ParameterEstimator* node;
     unsigned long int sampleIndex;
-    unsigned long int masterSampleIndex;
+    float masterSampleIndex;
 
     bool paramsCopied;
 
@@ -249,7 +249,7 @@ private:
 
     float likelihoodNoSpike;
     float maximumLikelihoodPerNeuron;
-    Eigen::RowVectorXd likelihoodPerNeuron;
+    Eigen::RowVectorXf likelihoodPerNeuron;
     double Hadjsum;
     bool thingsHaveChanged;
 
