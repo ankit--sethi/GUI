@@ -173,7 +173,7 @@ public:
 
     bool suppress;
     bool test;
-    Eigen::RowVectorXd tlastspike;
+    Eigen::RowVectorXf tlastspike;
     Eigen::RowVectorXf ltheta;
     Eigen::RowVectorXd ngamma;
 
@@ -254,7 +254,8 @@ private:
     bool thingsHaveChanged;
 
     Eigen::HouseholderQR<Eigen::MatrixXd> lambdaQR;
-    Eigen::HouseholderQR<Eigen::MatrixXd> QQR;
+    juce::Array<Eigen::HouseholderQR<Eigen::MatrixXd>> QQR;
+    Eigen::VectorXf QLogAbsDeterminant;
     double Quad;
 
     uint8_t* spikeBuffer;

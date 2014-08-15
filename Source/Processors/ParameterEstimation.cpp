@@ -150,7 +150,7 @@ bool ParameterEstimator::addElectrode(int nChans)
 
     newElectrode->name = newName;
     newElectrode->numChannels = nChans;
-    newElectrode->prePeakSamples = 4;
+    newElectrode->prePeakSamples = 8;
     newElectrode->postPeakSamples = 32;
     newElectrode->paramAveragingCount = 0;
     newElectrode->mu = 0;
@@ -775,7 +775,7 @@ void ParameterEstimator::process(AudioSampleBuffer& buffer,
                     double var = getCurrentSample(currentChannel);
 
                     //std::cout<< var << std::endl;
-                    if (electrode->paramAveragingCount < sampleRate*3) //averaging for 30 s to find noise mu and sigma (needs to be changed to that each electrode gets its own noise measurement)
+                    if (electrode->paramAveragingCount < sampleRate*30) //averaging for 30 s to find noise mu and sigma (needs to be changed to that each electrode gets its own noise measurement)
                     {
                         //electrode->paramAveragingCount++;
                         delta = (var - electrode->mu);
@@ -784,16 +784,16 @@ void ParameterEstimator::process(AudioSampleBuffer& buffer,
 
 
                     }
-                    if (electrode->paramAveragingCount == int(sampleRate*3))
+                    if (electrode->paramAveragingCount == int(sampleRate*30))
                     {
                         electrode->musqrd = (electrode->mu)*(electrode->mu);
                         electrode->sigma = sqrt(electrode->sumOfSquaresOfDifferences/electrode->paramAveragingCount);
                         std::cout<<"End of first 30 seconds" << std::endl;
                         std::cout << "The mu and sigma for ripple detection are - " << electrode->mu << " and " << electrode->sigma << std::endl;
                     }
-                    if (electrode->paramAveragingCount >= sampleRate*6 && electrode->paramAveragingCount < sampleRate*60) // START PRELIM SPIKE DETECTION
+                    if (electrode->paramAveragingCount >= sampleRate*60 && electrode->paramAveragingCount < sampleRate*120) // START PRELIM SPIKE DETECTION
                     {
-                        if (electrode->paramAveragingCount == (int)(sampleRate*6))
+                        if (electrode->paramAveragingCount == (int)(sampleRate*60))
                         {
                             std::cout<< "Starting spike detection." << std::endl;
                         }
@@ -844,17 +844,17 @@ void ParameterEstimator::process(AudioSampleBuffer& buffer,
                         //std::cout << "Spike detected on electrode " << i << std::endl;
                     }
 
-                    if (electrode->paramAveragingCount < sampleRate*6 && electrode->paramAveragingCount >= sampleRate*3)
+                    if (electrode->paramAveragingCount < sampleRate*60 && electrode->paramAveragingCount >= sampleRate*30)
                     {
                         double var0 = getNextSample(currentChannel);
                         //double renormratio = (electrode->paramAveragingCount)/(electrode->paramAveragingCount+1);
 
                         cssp = cssp + (var0*var - (electrode->mu)*(var0 + var) + electrode->musqrd);
                     }
-                    if (electrode->paramAveragingCount == int(sampleRate*6))
+                    if (electrode->paramAveragingCount == int(sampleRate*60))
                     {
                         acfLag1 = cssp/(electrode->sigma*electrode->sigma);
-                        acfLag1 = acfLag1/(sampleRate*6 - 2);
+                        acfLag1 = acfLag1/(sampleRate*30);
                         std::cout << " The ACF LAG1 is - " << acfLag1 << std::endl;
                     }
                 }
@@ -862,7 +862,7 @@ void ParameterEstimator::process(AudioSampleBuffer& buffer,
         }
         //this marks the ending of parameter detection -----------------------------
 
-        if (electrode->paramAveragingCount >= (sampleRate*60) && !allParametersEstimated)
+        if (electrode->paramAveragingCount >= (sampleRate*120) && !allParametersEstimated)
         {
 
             if (SVDmethod) // starting the SVD Thread

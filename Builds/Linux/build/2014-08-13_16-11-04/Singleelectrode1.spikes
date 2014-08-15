@@ -1,0 +1,8 @@
+header.format = 'Open Ephys Data Format'; 
+header.version = 0.2;header.header_bytes = 1024;
+header.description = 'Each record contains 1 uint8 eventType, 1 uint64 timestamp, 1 uint16 electrodeID, 1 uint16 numChannels (n), 1 uint16 numSamples (m), n*m uint16 samples, n uint16 channelGains, n uint16 thresholds, and 1 uint16 recordingNumber'; 
+header.date_created = '13-Aug-2014 16114';
+header.electrode = 'Single electrode 1';
+header.num_channels = 1;
+header.sampleRate = 40000;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
