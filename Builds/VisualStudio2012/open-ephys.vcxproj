@@ -287,6 +287,7 @@
     <ClCompile Include="..\..\Source\Dsp\RootFinder.cpp"/>
     <ClCompile Include="..\..\Source\Dsp\State.cpp"/>
     <ClCompile Include="..\..\Source\Audio\AudioComponent.cpp"/>
+    <ClCompile Include="..\..\Source\Processors\SortedSpikeViewer.cpp"/>
     <ClCompile Include="..\..\Source\Processors\SpikeSorter.cpp"/>
     <ClCompile Include="..\..\Source\Processors\ParameterEstimation.cpp"/>
     <ClCompile Include="..\..\Source\Processors\TTLTrigger.cpp"/>
@@ -313,6 +314,7 @@
     <ClCompile Include="..\..\Source\Processors\Utilities\RecordControl.cpp"/>
     <ClCompile Include="..\..\Source\Processors\Utilities\Merger.cpp"/>
     <ClCompile Include="..\..\Source\Processors\Utilities\Splitter.cpp"/>
+    <ClCompile Include="..\..\Source\Processors\Visualization\SortedSpikeCanvas.cpp"/>
     <ClCompile Include="..\..\Source\Processors\Visualization\RippleDisplayCanvas.cpp"/>
     <ClCompile Include="..\..\Source\Processors\Visualization\RippleObject.cpp"/>
     <ClCompile Include="..\..\Source\Processors\Visualization\SpikeObject.cpp"/>
@@ -322,6 +324,7 @@
     <ClCompile Include="..\..\Source\Processors\SpikeDetector.cpp"/>
     <ClCompile Include="..\..\Source\Processors\AudioNode.cpp"/>
     <ClCompile Include="..\..\Source\Processors\EventNode.cpp"/>
+    <ClCompile Include="..\..\Source\Processors\Editors\SortedSpikeViewerEditor.cpp"/>
     <ClCompile Include="..\..\Source\Processors\Editors\SpikeSorterEditor.cpp"/>
     <ClCompile Include="..\..\Source\Processors\Editors\ParameterEstimatorEditor.cpp"/>
     <ClCompile Include="..\..\Source\Processors\Editors\RippleDetectorEditor.cpp"/>
@@ -1496,6 +1499,7 @@
     <ClInclude Include="..\..\Source\Dsp\Types.h"/>
     <ClInclude Include="..\..\Source\Dsp\Utilities.h"/>
     <ClInclude Include="..\..\Source\Audio\AudioComponent.h"/>
+    <ClInclude Include="..\..\Source\Processors\SortedSpikeViewer.h"/>
     <ClInclude Include="..\..\Source\Processors\SpikeSorter.h"/>
     <ClInclude Include="..\..\Source\Processors\ParameterEstimation.h"/>
     <ClInclude Include="..\..\Source\Processors\TTLTrigger.h"/>
@@ -1523,6 +1527,7 @@
     <ClInclude Include="..\..\Source\Processors\Utilities\RecordControl.h"/>
     <ClInclude Include="..\..\Source\Processors\Utilities\Merger.h"/>
     <ClInclude Include="..\..\Source\Processors\Utilities\Splitter.h"/>
+    <ClInclude Include="..\..\Source\Processors\Visualization\SortedSpikeCanvas.h"/>
     <ClInclude Include="..\..\Source\Processors\Visualization\RippleDisplayCanvas.h"/>
     <ClInclude Include="..\..\Source\Processors\Visualization\RippleObject.h"/>
     <ClInclude Include="..\..\Source\Processors\Visualization\SpikeObject.h"/>
@@ -1533,6 +1538,7 @@
     <ClInclude Include="..\..\Source\Processors\SpikeDetector.h"/>
     <ClInclude Include="..\..\Source\Processors\AudioNode.h"/>
     <ClInclude Include="..\..\Source\Processors\EventNode.h"/>
+    <ClInclude Include="..\..\Source\Processors\Editors\SortedSpikeViewerEditor.h"/>
     <ClInclude Include="..\..\Source\Processors\Editors\SpikeSorterEditor.h"/>
     <ClInclude Include="..\..\Source\Processors\Editors\ParameterEstimatorEditor.h"/>
     <ClInclude Include="..\..\Source\Processors\Editors\RippleDetectorEditor.h"/>

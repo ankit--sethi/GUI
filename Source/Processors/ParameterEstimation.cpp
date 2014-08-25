@@ -40,7 +40,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "Channel.h"
 
 ParameterEstimator::ParameterEstimator()
-    : GenericProcessor("Parameter Estimator"),overflowBuffer(2,1), dataBuffer(overflowBuffer), overflowBufferSize(100), currentElectrode(-1)
+    : GenericProcessor("Parameter Estimator"),overflowBuffer(2,1), dataBuffer(overflowBuffer), overflowBufferSize(100), currentElectrode(-1), SVDCols(3)
 {
 
         electrodeTypes.clear();
@@ -138,7 +138,6 @@ bool ParameterEstimator::addElectrode(int nChans)
         electrodeName = electrodeTypes[nChans-1];
     else
         electrodeName = electrodeTypes[nChans-2];
-
     String newName = electrodeName.substring(0,1);
     newName = newName.toUpperCase();
     electrodeName = electrodeName.substring(1,electrodeName.length());
@@ -160,7 +159,6 @@ bool ParameterEstimator::addElectrode(int nChans)
     newElectrode->thresholds = new double[nChans];
     newElectrode->isActive = new bool[nChans];
     newElectrode->channels = new int[nChans];
-
     for (int i = 0; i < nChans; i++)
     {
         *(newElectrode->channels+i) = firstChan+i;
@@ -173,7 +171,6 @@ bool ParameterEstimator::addElectrode(int nChans)
     electrodes.add(newElectrode);
 
     return true;
-
 }
 
 float ParameterEstimator::getDefaultThreshold()
@@ -207,6 +204,11 @@ bool ParameterEstimator::removeElectrode(int index)
 void ParameterEstimator::setElectrodeName(int index, String newName)
 {
     electrodes[index-1]->name = newName;
+}
+
+void ParameterEstimator::setSVDColumnsToUse(int dim)
+{
+    SVDCols = dim;
 }
 
 void ParameterEstimator::setChannel(int electrodeIndex, int channelNum, int newChannel)

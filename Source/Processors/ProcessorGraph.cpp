@@ -28,6 +28,7 @@
 #include "AudioNode.h"
 #include "LfpDisplayNode.h"
 #include "SpikeDisplayNode.h"
+#include "SortedSpikeViewer.h"
 #include "SpikeSorter.h"
 #include "EventNode.h"
 #include "FilterNode.h"
@@ -632,7 +633,12 @@ GenericProcessor* ProcessorGraph::createProcessorFromDescription(String& descrip
         {
             std::cout << "Creating a SpikeDisplayNode." << std::endl;
             processor = new SpikeDisplayNode();
-        } 
+        }
+        else if (subProcessorType.equalsIgnoreCase("Sorted Spike Viewer"))
+        {
+            std::cout << "Creating a SortedSpikeDisplayNode." << std::endl;
+            processor = new SpikeSortingDisplay();
+        }
     
         else if (subProcessorType.equalsIgnoreCase("WiFi Output"))
         {

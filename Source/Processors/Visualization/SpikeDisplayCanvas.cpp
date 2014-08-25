@@ -229,6 +229,7 @@ void SpikeDisplay::paint(Graphics& g)
 void SpikeDisplay::resized()
 {
     // this is kind of a mess -- is there any way to optimize it?
+    //std::cout << "I was called";
 
     if (spikePlots.size() > 0)
     {

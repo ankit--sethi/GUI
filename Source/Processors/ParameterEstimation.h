@@ -219,6 +219,8 @@ public:
     /** Removes an electrode with a given index. */
     bool removeElectrode(int index);
 
+    void setSVDColumnsToUse(int dim);
+
 
     void process(AudioSampleBuffer& buffer, MidiBuffer& events, int& nSamples);
 
@@ -250,6 +252,7 @@ other way, the application will crash. */
     TwoDimMatrix dictionary;
 
     SVDjob job;
+    int SVDCols;
 
 private:
 
@@ -273,8 +276,6 @@ private:
 
     float delta, cssp;
     float sampleRate;
-
-
 
     int dictionarySize;
 

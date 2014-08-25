@@ -93,13 +93,12 @@ private:
 
     ComboBox* electrodeTypes;
     ComboBox* electrodeList;
+    ComboBox* svdCol;
+    UtilityButton* setSVD;
     Label* numElectrodes;
-    Label* thresholdLabel;
     TriangleButton* upButton;
     TriangleButton* downButton;
     UtilityButton* plusButton;
-
-    ThresholdSlider* thresholdSlider;
 
     OwnedArray<ElectrodeButton> electrodeButtons;
     Array<ElectrodeEditorButton*> electrodeEditorButtons;

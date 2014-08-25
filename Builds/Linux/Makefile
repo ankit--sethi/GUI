@@ -63,6 +63,7 @@ OBJECTS := \
   $(OBJDIR)/RootFinder_239a995f.o \
   $(OBJDIR)/State_22979684.o \
   $(OBJDIR)/AudioComponent_521bd9c9.o \
+  $(OBJDIR)/SortedSpikeViewer_e3b74c36.o \
   $(OBJDIR)/SpikeSorter_b8ed216c.o \
   $(OBJDIR)/ParameterEstimation_7065280f.o \
   $(OBJDIR)/TTLTrigger_f038cd5b.o \
@@ -89,6 +90,7 @@ OBJECTS := \
   $(OBJDIR)/RecordControl_3e1c6062.o \
   $(OBJDIR)/Merger_2f90542e.o \
   $(OBJDIR)/Splitter_6e27a57b.o \
+  $(OBJDIR)/SortedSpikeCanvas_773d7f31.o \
   $(OBJDIR)/RippleDisplayCanvas_4cce765a.o \
   $(OBJDIR)/RippleObject_8d1c00e9.o \
   $(OBJDIR)/SpikeObject_24e8c655.o \
@@ -98,6 +100,7 @@ OBJECTS := \
   $(OBJDIR)/SpikeDetector_300d85e7.o \
   $(OBJDIR)/AudioNode_94606ff3.o \
   $(OBJDIR)/EventNode_95c842b7.o \
+  $(OBJDIR)/SortedSpikeViewerEditor_5c13a7a.o \
   $(OBJDIR)/SpikeSorterEditor_30c3d470.o \
   $(OBJDIR)/ParameterEstimatorEditor_40d5fcbc.o \
   $(OBJDIR)/RippleDetectorEditor_374fe9bb.o \
@@ -296,6 +299,11 @@ $(OBJDIR)/AudioComponent_521bd9c9.o: ../../Source/Audio/AudioComponent.cpp
 	@echo "Compiling AudioComponent.cpp"
 	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
 
+$(OBJDIR)/SortedSpikeViewer_e3b74c36.o: ../../Source/Processors/SortedSpikeViewer.cpp
+	-@mkdir -p $(OBJDIR)
+	@echo "Compiling SortedSpikeViewer.cpp"
+	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
+
 $(OBJDIR)/SpikeSorter_b8ed216c.o: ../../Source/Processors/SpikeSorter.cpp
 	-@mkdir -p $(OBJDIR)
 	@echo "Compiling SpikeSorter.cpp"
@@ -426,6 +434,11 @@ $(OBJDIR)/Splitter_6e27a57b.o: ../../Source/Processors/Utilities/Splitter.cpp
 	@echo "Compiling Splitter.cpp"
 	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
 
+$(OBJDIR)/SortedSpikeCanvas_773d7f31.o: ../../Source/Processors/Visualization/SortedSpikeCanvas.cpp
+	-@mkdir -p $(OBJDIR)
+	@echo "Compiling SortedSpikeCanvas.cpp"
+	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
+
 $(OBJDIR)/RippleDisplayCanvas_4cce765a.o: ../../Source/Processors/Visualization/RippleDisplayCanvas.cpp
 	-@mkdir -p $(OBJDIR)
 	@echo "Compiling RippleDisplayCanvas.cpp"
@@ -469,6 +482,11 @@ $(OBJDIR)/AudioNode_94606ff3.o: ../../Source/Processors/AudioNode.cpp
 $(OBJDIR)/EventNode_95c842b7.o: ../../Source/Processors/EventNode.cpp
 	-@mkdir -p $(OBJDIR)
 	@echo "Compiling EventNode.cpp"
+	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
+
+$(OBJDIR)/SortedSpikeViewerEditor_5c13a7a.o: ../../Source/Processors/Editors/SortedSpikeViewerEditor.cpp
+	-@mkdir -p $(OBJDIR)
+	@echo "Compiling SortedSpikeViewerEditor.cpp"
 	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
 
 $(OBJDIR)/SpikeSorterEditor_30c3d470.o: ../../Source/Processors/Editors/SpikeSorterEditor.cpp

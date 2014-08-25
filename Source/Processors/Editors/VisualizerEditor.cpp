@@ -145,7 +145,7 @@ void VisualizerEditor::updateVisualizer()
 
 void VisualizerEditor::editorWasClicked()
 {
-
+                                           std::cout << "Guessing I got here";
     if (tabIndex > -1)
     {
         std::cout << "Setting tab index to " << tabIndex << std::endl;
@@ -156,7 +156,6 @@ void VisualizerEditor::editorWasClicked()
 
 void VisualizerEditor::buttonEvent(Button* button)
 {
-
     int gId = button->getRadioGroupId();
 
     if (gId > 0)
@@ -220,6 +219,7 @@ void VisualizerEditor::buttonEvent(Button* button)
         }
         else if (button == tabSelector)
         {
+
             if (tabSelector->getToggleState() && tabIndex < 0)
             {
 

@@ -104,6 +104,9 @@ int packSortedSpike(const SortedSpikeObject& s, uint8_t* buffer, int bufferSize)
     memcpy(buffer+idx, &(s.nSamples), 2);
     idx +=2;
 
+    memcpy(buffer+idx, &(s.nDictionary), 2);
+    idx +=2;
+
     memcpy(buffer+idx, &(s.data), s.nChannels * s.nSamples * 2);
     idx += s.nChannels * s.nSamples * 2;
 
@@ -115,6 +118,9 @@ int packSortedSpike(const SortedSpikeObject& s, uint8_t* buffer, int bufferSize)
 
     memcpy(buffer+idx, &(s.neuronID), s.nChannels * 2);
     idx += s.nChannels * 2;
+
+    memcpy(buffer+idx, &(s.principalComponent), s.nDictionary * 2);
+    idx += s.nDictionary * 2;
     //std::cout << "//" << s.neuronID << "//";
 
     if (idx >= MAX_SPIKE_BUFFER_LEN)
@@ -240,6 +246,9 @@ bool unpackSortedSpike(SortedSpikeObject* s, const uint8_t* buffer, int bufferSi
         return false;
     }
 
+    memcpy(&(s->nDictionary), buffer+idx, 2);
+    idx +=2;
+
     memcpy(&(s->data), buffer+idx, s->nChannels * s->nSamples * 2);
     idx += s->nChannels * s->nSamples * 2;
 
@@ -251,6 +260,9 @@ bool unpackSortedSpike(SortedSpikeObject* s, const uint8_t* buffer, int bufferSi
 
     memcpy(&(s->neuronID), buffer+idx, s->nChannels *2);
     idx += s->nChannels * 2;
+
+    memcpy(&(s->principalComponent), buffer+idx, s->nDictionary *2);
+    idx += s->nDictionary * 2;
 
 
     //if (idx >= bufferSize)

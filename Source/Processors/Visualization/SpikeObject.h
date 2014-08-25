@@ -35,6 +35,7 @@
 #define SORTED_SPIKE_EVENT_CODE 11;
 #define MAX_SPIKE_BUFFER_LEN 512 // max length of spike buffer in bytes
 #define MAX_SORTED_SPIKE_BUFFER_LEN 512 // the true max calculated from the spike values below is actually 507
+#define MAX_DICTIONARY_COMPONENTS 5
 
 #define SPIKE_BASE_CODE 100
 
@@ -78,10 +79,12 @@ struct SortedSpikeObject
     uint16_t    source;
     uint16_t    nChannels;
     uint16_t    nSamples;
+    uint16_t    nDictionary;
     uint16_t    data[MAX_NUMBER_OF_SPIKE_CHANNELS* MAX_NUMBER_OF_SPIKE_CHANNEL_SAMPLES];
     uint16_t    gain[MAX_NUMBER_OF_SPIKE_CHANNELS];
     uint16_t    threshold[MAX_NUMBER_OF_SPIKE_CHANNELS];
     uint16_t    neuronID;
+    uint16_t    principalComponent[MAX_DICTIONARY_COMPONENTS];
 };
 
 /** Simple method for serializing a SpikeObject into a string of bytes, returns true is the packaged spike buffer is valid */

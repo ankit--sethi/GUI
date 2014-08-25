@@ -377,6 +377,7 @@ void SpikeSorter::addNewSampleAndLikelihoodsToCurrentSpikeObject(float sample, M
             neuronCount++;
         }
         currentSpike.neuronID = Cnew;
+        currentSpike.nDictionary = K;
         currentIndex = 0;
         //cout << "The INDEX IS //" << idx << "//";
         //std::ofstream file("spikes.txt", std::fstream::app);
@@ -386,19 +387,18 @@ void SpikeSorter::addNewSampleAndLikelihoodsToCurrentSpikeObject(float sample, M
         currentSpike.data[i] = uint16(xwindLonger(idx + i)/ channels[chan]->bitVolts + 32768);
 
         }
+
+        updateAllSortingParameters();
+        //std::cout << "One Spike Handled!" << std::endl;
+
         PackageCurrentSortedSpikeIntoBuffer(eventBuffer);
 
-        //std:: cout << int(currentSpike.eventType) << "//" << currentSpike.gain[1] << "//" << currentSpike.nChannels << "//" << currentSpike.neuronID << "//" << currentSpike.nSamples << "//" <<
-        //currentSpike.source << "//" << currentSpike.threshold[1] << "//" << currentSpike.timestamp << std::endl;
+
 
         int numBytes = packSortedSpike(currentSpike, spikeBuffer, MAX_SPIKE_BUFFER_LEN);
         if (numBytes > 0)
         eventBuffer.addEvent(spikeBuffer, numBytes, int(currentSpike.timestamp));
 
-        //clear everything that needs to be cleared now! we look for new spikes
-        //cout<< "reached till just before sorting parameters";
-        updateAllSortingParameters();
-        //std::cout << "One Spike Handled!" << std::endl;
         totalSpikesFound += 1;
 
     }
@@ -410,6 +410,8 @@ void SpikeSorter::updateAllSortingParameters()
     int neuronID = currentSpike.neuronID;
     Qmat = ReducedDictionaryTranspose*lambda*ReducedDictionary + lamclus[neuronID];
     yhat = Qmat.inverse()*(ReducedDictionaryTranspose*lambda*(xwindLonger.segment(idx, P)) + lamclus[neuronID]*muu.col(neuronID));
+    for (int i = 0; i < yhat.size(); i++)
+        currentSpike.principalComponent[i] = yhat(i);
     ngamma(neuronID) = ngamma(neuronID) + 1;
     deltaT = masterSampleIndex + sampleIndex -P - range + idx - tlastspike(neuronID);
     tlastspike(neuronID) = masterSampleIndex + sampleIndex - P - range + idx;

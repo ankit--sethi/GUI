@@ -70,7 +70,7 @@ void SpikeDisplayNode::updateSettings()
             elec.numChannels = eventChannels[i]->eventType - 100;
             elec.name = eventChannels[i]->name;
             elec.currentSpikeIndex = 0;
-            elec.mostRecentSpikes.ensureStorageAllocated(displayBufferSize);
+            elec.mostRecentSortedSpikes.ensureStorageAllocated(displayBufferSize);
 
             for (int j = 0; j < elec.numChannels; j++)
             {

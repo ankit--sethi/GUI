@@ -229,6 +229,10 @@
               file="Source/Audio/AudioComponent.h"/>
       </GROUP>
       <GROUP id="yQmqZWk" name="Processors">
+        <FILE id="ZL0JtO" name="SortedSpikeViewer.cpp" compile="1" resource="0"
+              file="Source/Processors/SortedSpikeViewer.cpp"/>
+        <FILE id="CAANs5" name="SortedSpikeViewer.h" compile="0" resource="0"
+              file="Source/Processors/SortedSpikeViewer.h"/>
         <FILE id="rrINrK" name="SpikeSorter.cpp" compile="1" resource="0" file="Source/Processors/SpikeSorter.cpp"/>
         <FILE id="YVLh94" name="SpikeSorter.h" compile="0" resource="0" file="Source/Processors/SpikeSorter.h"/>
         <FILE id="WRmTFi" name="ParameterEstimation.cpp" compile="1" resource="0"
@@ -313,6 +317,10 @@
           <FILE id="DXYynnz" name="Splitter.h" compile="0" resource="0" file="Source/Processors/Utilities/Splitter.h"/>
         </GROUP>
         <GROUP id="W4eqkOy" name="Visualization">
+          <FILE id="xD7tVm" name="SortedSpikeCanvas.cpp" compile="1" resource="0"
+                file="Source/Processors/Visualization/SortedSpikeCanvas.cpp"/>
+          <FILE id="xN3TFG" name="SortedSpikeCanvas.h" compile="0" resource="0"
+                file="Source/Processors/Visualization/SortedSpikeCanvas.h"/>
           <FILE id="EudSmT" name="RippleDisplayCanvas.cpp" compile="1" resource="0"
                 file="Source/Processors/Visualization/RippleDisplayCanvas.cpp"/>
           <FILE id="MmLWiF" name="RippleDisplayCanvas.h" compile="0" resource="0"
@@ -343,6 +351,10 @@
         <FILE id="hGnGAjh" name="EventNode.cpp" compile="1" resource="0" file="Source/Processors/EventNode.cpp"/>
         <FILE id="dUtRN6" name="EventNode.h" compile="0" resource="0" file="Source/Processors/EventNode.h"/>
         <GROUP id="AqvwO6w" name="Editors">
+          <FILE id="KCTXSd" name="SortedSpikeViewerEditor.cpp" compile="1" resource="0"
+                file="Source/Processors/Editors/SortedSpikeViewerEditor.cpp"/>
+          <FILE id="xF4hr1" name="SortedSpikeViewerEditor.h" compile="0" resource="0"
+                file="Source/Processors/Editors/SortedSpikeViewerEditor.h"/>
           <FILE id="IpTzwr" name="SpikeSorterEditor.cpp" compile="1" resource="0"
                 file="Source/Processors/Editors/SpikeSorterEditor.cpp"/>
           <FILE id="Z9GGuX" name="SpikeSorterEditor.h" compile="0" resource="0"

@@ -77,6 +77,7 @@ ProcessorList::ProcessorList()
     sinks->addSubItem(new ProcessorListItem("LFP Viewer"));
     //sinks->addSubItem(new ProcessorListItem("LFP Trig. Avg."));
     sinks->addSubItem(new ProcessorListItem("Spike Viewer"));
+    sinks->addSubItem(new ProcessorListItem("Sorted Spike Viewer"));
 
 	//sinks->addSubItem(new ProcessorListItem("PSTH"));
 	//sinks->addSubItem(new ProcessorListItem("Network Sink"));

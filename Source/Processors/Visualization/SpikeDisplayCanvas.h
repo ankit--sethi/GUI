@@ -47,6 +47,7 @@
 #define STEREO_PLOT  1002
 #define SINGLE_PLOT  1001
 
+
 #define MAX_NUMBER_OF_SPIKE_SOURCES 128
 #define MAX_N_CHAN 4
 

@@ -75,6 +75,18 @@ ParameterEstimatorEditor::ParameterEstimatorEditor(GenericProcessor* parentNode,
     electrodeList->setBounds(15,75,115,20);
     addAndMakeVisible(electrodeList);
 
+    svdCol = new ComboBox("SVD Columns To Use");
+    svdCol->addItem(String("2"), 1);
+    svdCol->addItem(String("3"), 2);
+    svdCol->addItem(String("4"), 3);
+    svdCol->addItem(String("5"), 4);
+    svdCol->setEditableText(false);
+    svdCol->setJustificationType(Justification::centredLeft);
+    svdCol->addListener(this);
+    svdCol->setBounds(215,105,50,20);
+
+    addAndMakeVisible(svdCol);
+
     numElectrodes = new Label("Number of Electrodes","1");
     numElectrodes->setEditable(true);
     numElectrodes->addListener(this);
@@ -98,6 +110,12 @@ ParameterEstimatorEditor::ParameterEstimatorEditor(GenericProcessor* parentNode,
     plusButton->setBounds(15,42,14,14);
     addAndMakeVisible(plusButton);
 
+    setSVD = new UtilityButton("SET", titleFont);
+    setSVD->addListener(this);
+    setSVD->setRadius(3.0f);
+    setSVD->setBounds(215,85,30,14);
+    addAndMakeVisible(setSVD);
+
     ElectrodeEditorButton* e1 = new ElectrodeEditorButton("EDIT",font);
     e1->addListener(this);
     addAndMakeVisible(e1);
@@ -115,21 +133,6 @@ ParameterEstimatorEditor::ParameterEstimatorEditor(GenericProcessor* parentNode,
     addAndMakeVisible(e3);
     e3->setBounds(130,110,70,10);
     electrodeEditorButtons.add(e3);
-
-    thresholdSlider = new ThresholdSlider(font);
-    thresholdSlider->setBounds(200,35,75,75);
-    addAndMakeVisible(thresholdSlider);
-    thresholdSlider->addListener(this);
-    thresholdSlider->setActive(false);
-    Array<double> v;
-    thresholdSlider->setValues(v);
-
-    thresholdLabel = new Label("Name","Threshold");
-    font.setHeight(10);
-    thresholdLabel->setFont(font);
-    thresholdLabel->setBounds(202, 105, 95, 15);
-    thresholdLabel->setColour(Label::textColourId, Colours::grey);
-    addAndMakeVisible(thresholdLabel);
 
     // create a custom channel selector
     deleteAndZero(channelSelector);
@@ -202,9 +205,6 @@ void ParameterEstimatorEditor::buttonEvent(Button* button)
 
             ParameterEstimator* processor = (ParameterEstimator*) getProcessor();
 
-            thresholdSlider->setActive(true);
-            thresholdSlider->setValue(processor->getChannelThreshold(electrodeList->getSelectedItemIndex(),
-                                                                     electrodeButtons.indexOf((ElectrodeButton*) button)));
         }
         else
         {
@@ -248,7 +248,7 @@ void ParameterEstimatorEditor::buttonEvent(Button* button)
     }
     else if (button == plusButton)
     {
-        // std::cout << "Plus button pressed!" << std::endl;
+        std::cout << "Plus button pressed!" << std::endl;
 
         int type = electrodeTypes->getSelectedId();
        // std::cout << type << std::endl;
@@ -275,10 +275,17 @@ void ParameterEstimatorEditor::buttonEvent(Button* button)
             {
                 sendActionMessage("Not enough channels to add electrode.");
             }
+
         }
 
 
         getEditorViewport()->makeEditorVisible(this, true, true);
+        return;
+
+    }
+    else if (button == setSVD)
+    {
+        std::cout << "SET button pressed!" << std::endl;
         return;
 
     }
@@ -309,7 +316,6 @@ void ParameterEstimatorEditor::buttonEvent(Button* button)
 
         if (!button->getToggleState())
         {
-            thresholdSlider->setActive(false);
 
             // This will be -1 with nothing selected
             int selectedItemIndex = electrodeList->getSelectedItemIndex();
@@ -372,7 +378,6 @@ void ParameterEstimatorEditor::channelChanged(int chan)
 
 void ParameterEstimatorEditor::refreshElectrodeList()
 {
-
     electrodeList->clear();
 
     ParameterEstimator* processor = (ParameterEstimator*) getProcessor();
@@ -408,6 +413,7 @@ bool ParameterEstimatorEditor::addElectrode(int nChans)
     {
         return false;
     }
+
 
 }
 
@@ -463,7 +469,7 @@ void ParameterEstimatorEditor::labelTextChanged(Label* label)
         electrodeTypes->setText(currentText += "s");
     }
 
-    getEditorViewport()->makeEditorVisible(this, false, true);
+    getEditorViewport()->makeEditorVisible(this, true, true);
 
 }
 
@@ -494,7 +500,16 @@ void ParameterEstimatorEditor::comboBoxChanged(ComboBox* comboBox)
         }
     }
 
-    thresholdSlider->setActive(false);
+    if (comboBox == svdCol)
+    {
+            ParameterEstimator* processor = (ParameterEstimator*) getProcessor();
+
+            processor->setSVDColumnsToUse(comboBox->getSelectedId() + 1);
+            getEditorViewport()->makeEditorVisible(this, true, true);
+            return;
+    }
+
+
 }
 
 void ParameterEstimatorEditor::checkSettings()
@@ -503,9 +518,6 @@ void ParameterEstimatorEditor::checkSettings()
     drawElectrodeButtons(0);
 
     getEditorViewport()->makeEditorVisible(this, true, true);
-
-
-
 }
 
 void ParameterEstimatorEditor::drawElectrodeButtons(int ID)
@@ -561,7 +573,6 @@ void ParameterEstimatorEditor::drawElectrodeButtons(int ID)
     }
 
     channelSelector->setActiveChannels(activeChannels);
-    thresholdSlider->setValues(thresholds);
 }
 /*
 ThresholdSlider::ThresholdSlider(Font f) : Slider("name"), font(f)
