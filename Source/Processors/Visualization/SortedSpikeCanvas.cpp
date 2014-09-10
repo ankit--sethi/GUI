@@ -470,6 +470,8 @@ void  PCAxes::updatePrincipalComponents(const SortedSpikeObject& s)
     float w = getWidth();
     Graphics g(projectionImage);
 
+    g.setColour(Colours::white);
+
     switch(s.neuronID)
     {
     case 1:
@@ -512,27 +514,31 @@ void  PCAxes::updatePrincipalComponents(const SortedSpikeObject& s)
     switch(svdCols)
     {
     case 2:
-        xf = s.principalComponent[choose2[2*(type - 1)]];
-        yf = s.principalComponent[choose2[2*type - 1]];
+        xf = float(s.principalComponent[choose2[2*(type - 1)]]-32768)/float(*s.gain)*1000.0f;
+        yf = float(s.principalComponent[choose2[2*(type - 1)]]-32768)/float(*s.gain)*1000.0f;
         break;
     case 3:
-        xf = s.principalComponent[choose3[2*(type - 1)]];
-        yf = s.principalComponent[choose3[2*type - 1]];
+        xf = float(s.principalComponent[choose3[2*(type - 1)]]-32768)/float(*s.gain)*1000.0f;
+        yf = float(s.principalComponent[choose3[2*(type - 1)]]-32768)/float(*s.gain)*1000.0f;
         break;
     case 4:
-        xf = s.principalComponent[choose4[2*(type - 1)]];
-        yf = s.principalComponent[choose4[2*type - 1]];
+        xf = float(s.principalComponent[choose4[2*(type - 1)]]-32768)/float(*s.gain)*1000.0f;
+        yf = float(s.principalComponent[choose4[2*(type - 1)]]-32768)/float(*s.gain)*1000.0f;
         break;
     case 5:
-        xf = s.principalComponent[choose5[2*(type - 1)]];
-        yf = s.principalComponent[choose5[2*type - 1]];
+        xf = float(s.principalComponent[choose5[2*(type - 1)]]-32768)/float(*s.gain)*1000.0f;
+        yf = float(s.principalComponent[choose5[2*(type - 1)]]-32768)/float(*s.gain)*1000.0f;
         break;
     }
 
-        xf = 0.5*w + (w*xf/rangeX);
-        yf = 0.5*h + (w*yf/rangeY);
-        g.fillEllipse(xf,yf,2.0f,2.0f);
-        g.fillEllipse(3,4,50.0f,50.0f);
+
+
+
+        xf = 0.5*w + 0.5*(w*xf/rangeX);
+        yf = 0.5*h + 0.5*(w*yf/rangeY);
+        //std::cout << "XF / width IS" << xf  << "/" << w << " And YF / height is" << yf << "/" << h << std::endl;
+        g.fillEllipse(xf,yf,2.0f,1.0f);
+        //g.fillEllipse(3,4,50.0f,50.0f);
 
 }
 void PCAxes::drawGrid(Graphics& g)
@@ -553,7 +559,7 @@ void PCAxes::paint(Graphics& g)
 
     g.setColour(Colours::black);
     g.fillRect(1,1,getWidth() - 1 , getHeight() -1);
-
+    //std::cout << "drawing again";
     g.drawImage(projectionImage, 1, 1, getWidth() - 1, getHeight() - 1, 0, 0, getWidth(), getHeight());
     drawGrid(g);
 }

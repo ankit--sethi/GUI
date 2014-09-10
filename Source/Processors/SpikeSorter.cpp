@@ -411,7 +411,7 @@ void SpikeSorter::updateAllSortingParameters()
     Qmat = ReducedDictionaryTranspose*lambda*ReducedDictionary + lamclus[neuronID];
     yhat = Qmat.inverse()*(ReducedDictionaryTranspose*lambda*(xwindLonger.segment(idx, P)) + lamclus[neuronID]*muu.col(neuronID));
     for (int i = 0; i < yhat.size(); i++)
-        currentSpike.principalComponent[i] = yhat(i);
+        currentSpike.principalComponent[i] = uint16(yhat(i)/ channels[0]->bitVolts + 32768);
     ngamma(neuronID) = ngamma(neuronID) + 1;
     deltaT = masterSampleIndex + sampleIndex -P - range + idx - tlastspike(neuronID);
     tlastspike(neuronID) = masterSampleIndex + sampleIndex - P - range + idx;
@@ -671,7 +671,7 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
         }
         masterSampleIndex += sampleIndex;
          stopTime = Time::getMillisecondCounterHiRes();
-        //log1->writeToLog("Duration taken was " + String(stopTime - startTime) + "ms for nSamples = " + String(nSamples));
+        log1->writeToLog("Duration taken was " + String(stopTime - startTime) + "ms for nSamples = " + String(nSamples));
 
 
     }
