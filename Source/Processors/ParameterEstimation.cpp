@@ -936,6 +936,7 @@ void ParameterEstimator::process(AudioSampleBuffer& buffer,
                     Logger *log1 = Logger::getCurrentLogger();
                     log1->writeToLog("Time for 40 x 40 inverse is = " + String(stopTime1 - startTime1));
                     node->lambdaQR.compute(node->lambda);
+                    node->lambdaLLT.compute(node->lambda);
                     node->logDeterminantOfLambda = node->lambdaQR.logAbsDeterminant();
                     node->logPlusDetTermForNoiseLL = (-1*node->P)*LOG2PIBY2 + 0.5*node->logDeterminantOfLambda;
                     std::cout<<"Determinant is = " << node->logDeterminantOfLambda << " and " << node->ReducedDictionary.col(0).size() << "x" << node->ReducedDictionary.row(0).size() << "//" << std::endl;

@@ -210,6 +210,7 @@ SpikeSorter::SpikeSorter()
     ngamma = Eigen::VectorXd::Zero(Cmax);
     tlastspike = Eigen::VectorXf::Zero(Cmax);
     likelihoodPerNeuron = Eigen::VectorXf::Zero(Cmax);
+    cLL = Eigen::VectorXf::Zero(Cmax);
     QLogAbsDeterminant = Eigen::VectorXf::Zero(Cmax);
 
     for (int i = 0; i < Cmax; i++)
@@ -350,11 +351,15 @@ void SpikeSorter::setParameter(int parameterIndex, float newValue)
         ReducedDictionaryTranspose = ReducedDictionary.transpose();
 
         Eigen::HouseholderQR<Eigen::MatrixXd> t;
+        Eigen::LLT<Eigen::MatrixXd> tllt;
         for (int i = 0; i < Cmax; i++)
         {
             t.compute(sigma + ReducedDictionary*(Rinv[i] + lamclusinv[i])*ReducedDictionaryTranspose);
+            tllt.compute(sigma + ReducedDictionary*(Rinv[i] + lamclusinv[i])*ReducedDictionaryTranspose);
             QQR.add(t);
+            QLLT.add(tllt);
             QLogAbsDeterminant(i) = QQR[i].logAbsDeterminant();
+            cLL(i) = -(float(P)*LOG2PIBY2) - 0.5*QLogAbsDeterminant(i);
         }
 
     }
@@ -462,6 +467,8 @@ void SpikeSorter::addNewSampleAndLikelihoodsToCurrentSpikeObject(float sample, M
 
 void SpikeSorter::updateAllSortingParameters()
 {
+    //Logger *log1 = Logger::getCurrentLogger();
+    //double startTimet = Time::getMillisecondCounterHiRes();
     int neuronID = currentSpike.neuronID;
     Qmat = ReducedDictionaryTranspose*lambda*ReducedDictionary + lamclus[neuronID];
     yhat = Qmat.inverse()*(ReducedDictionaryTranspose*lambda*(xwindLonger.segment(idx, P)) + lamclus[neuronID]*muu.col(neuronID));
@@ -488,7 +495,11 @@ void SpikeSorter::updateAllSortingParameters()
     lamclusinv.setUnchecked(neuronID, lamclus[neuronID].inverse());
     thingsHaveChanged = 1;
     QQR[neuronID].compute(sigma + ReducedDictionary*(Rinv[neuronID] + lamclusinv[neuronID])*ReducedDictionaryTranspose);
+    QLLT[neuronID].compute(sigma + ReducedDictionary*(Rinv[neuronID] + lamclusinv[neuronID])*ReducedDictionaryTranspose);
     QLogAbsDeterminant(neuronID) = QQR[neuronID].logAbsDeterminant();
+    cLL(neuronID) = -(float(P)*LOG2PIBY2) - 0.5*QLogAbsDeterminant[neuronID];
+    //double stopTimet = Time::getMillisecondCounterHiRes();
+    //log1->writeToLog("UPDATE DURATION is " + String(stopTimet - startTimet));
 }
 
 
@@ -532,11 +543,13 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
                         {
 
                             // find likelihood of no spike
+                            double startTime2 = Time::getMillisecondCounterHiRes();
                             circbuffer[i]->show(P, xwind);
-                            xwindloop = xwind;
+                            //xwindloop = xwind;
 
                             if(thingsHaveChanged)
                             {
+
                                 for (int i = 0; i < neuronCount; i++)
                                 {
                                     {
@@ -549,27 +562,33 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
 
                             }
 
-                            Quad = float(xwind.transpose()*(lambdaQR.solve(xwind)));
-                            likelihoodNoSpike = logPlusDetTermForNoiseLL -0.5*Quad;
+                            likelihoodNoSpike = logPlusDetTermForNoiseLL -0.5*float(xwind.transpose()*(lambdaLLT.solve(xwind)));
 
 
+                            double stopTime2 = Time::getMillisecondCounterHiRes();
+                            //log1->writeToLog("First Duration is " + String(stopTime2 - startTime2) + "ms for nSamples = " + String(nSamples));
+                            //log1->writeToLog("Step as percentage is " + String((frac10-frac1)*100/(stopTime2 - startTime2)) + "%");
+                            double startTime1 = Time::getMillisecondCounterHiRes();
+                            //#pragma omp parallel for
                             for (int j = 0; j < neuronCount; j++)
                             {
                                 xwindloop = xwind - ReducedDictionary*muu.col(j);
 
                                 if( ( (masterSampleIndex + float(sampleIndex)) - tlastspike(j)) < 10000*50/10000 )  // THIS NEEDS TO BE INVESTIGATED
-                                    likelihoodPerNeuron(j) = -(float(P)*LOG2PIBY2) - 0.5*QLogAbsDeterminant[j] - suppresslikelihood - 0.5*double(xwindloop.transpose()*(QQR[j].solve(xwindloop)));
+                                    likelihoodPerNeuron(j) = cLL(j) - suppresslikelihood - 0.5*double(xwindloop.transpose()*(QLLT[j].solve(xwindloop)));
                                 else
-                                    likelihoodPerNeuron(j) = -(float(P)*LOG2PIBY2) - 0.5*QLogAbsDeterminant[j] - 0.5*double(xwindloop.transpose()*(QQR[j].solve(xwindloop)));
+                                    likelihoodPerNeuron(j) = cLL(j) - 0.5*double(xwindloop.transpose()*(QLLT[j].solve(xwindloop)));
                             }
                             if (thingsHaveChanged)
                             {
-                                logPlusDetTermForNewNeuronLL = -(float(P)*LOG2PIBY2) - 0.5*QLogAbsDeterminant[neuronCount];
+                                //logPlusDetTermForNewNeuronLL = -(float(P)*LOG2PIBY2) - 0.5*QLogAbsDeterminant[neuronCount];
                                 thingsHaveChanged = 0;
                             }
-                            likelihoodPerNeuron(neuronCount) = logPlusDetTermForNewNeuronLL - 0.5*double((xwind.transpose()*(QQR[neuronCount].solve(xwind))));
+                            likelihoodPerNeuron(neuronCount) = cLL(neuronCount) - 0.5*double((xwind.transpose()*(QLLT[neuronCount].solve(xwind))));
+                            double stopTime1 = Time::getMillisecondCounterHiRes();
+                            //log1->writeToLog("Second Duration is " + String(stopTime1 - startTime1) + "ms for nSamples = " + String(nSamples));
 
-
+                            double startTime0 = Time::getMillisecondCounterHiRes();
                             for (int i = 0; i <= neuronCount; i++ )
                             {
                                 likelihoodPerNeuron(i) =  likelihoodPerNeuron(i) + ltheta(i);
@@ -610,11 +629,13 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
                             }
 
                             circbuffer[i]->dequeue(); // After everything is done, remove most past sample, ie, xwind(0)
+                            double stopTime0 = Time::getMillisecondCounterHiRes();
+                            //log1->writeToLog("Third Duration is " + String(stopTime0 - startTime0) + "ms for nSamples = " + String(nSamples));
                         }
 
                     }
                 }
-
+                // here
             }
 
         }

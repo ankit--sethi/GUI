@@ -231,7 +231,9 @@ public:
     void updateSettings();
 
     Eigen::HouseholderQR<Eigen::MatrixXd> lambdaQR;
+    Eigen::LLT<Eigen::MatrixXd> lambdaLLT;
     juce::Array<Eigen::HouseholderQR<Eigen::MatrixXd>> QQR;
+    juce::Array<Eigen::LLT<Eigen::MatrixXd>> QLLT;
     Eigen::VectorXf QLogAbsDeterminant;
 
     bool allParametersEstimated;
@@ -265,6 +267,7 @@ private:
     float likelihoodNoSpike;
     float maximumLikelihoodPerNeuron;
     Eigen::RowVectorXf likelihoodPerNeuron;
+    Eigen::VectorXf cLL;
     double Hadjsum;
     bool thingsHaveChanged;
 

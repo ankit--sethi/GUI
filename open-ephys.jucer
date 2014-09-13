@@ -21,7 +21,7 @@
       </CONFIGURATIONS>
     </XCODE_MAC>
     <LINUX_MAKE targetFolder="Builds/Linux" vstFolder="~/SDKs/vstsdk2.4" juceFolder="JuceLibraryCode"
-                extraLinkerFlags="-pg -ldl -lXext -lGLU" extraCompilerFlags="-export-dynamic -g -pg -std=c++0x">
+                extraLinkerFlags="-pg -ldl -lXext -lGLU -fopenmp" extraCompilerFlags="-export-dynamic -g -pg -std=c++0x -fopenmp">
       <CONFIGURATIONS>
         <CONFIGURATION name="Debug" isDebug="1" optimisation="3" targetName="open-ephys"
                        libraryPath="/usr/X11R6/lib/&#10;/usr/local/include&#10;" headerPath="/usr/local/include&#10;"/>
