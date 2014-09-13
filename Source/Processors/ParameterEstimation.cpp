@@ -35,10 +35,11 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <stdio.h>
 #include <algorithm>
 #include "ParameterEstimation.h"
+#include "SpikeSorter.h"
 #include <fstream>
 
 #include "Channel.h"
-
+#define LOG2PIBY2 0.39908993417
 ParameterEstimator::ParameterEstimator()
     : GenericProcessor("Parameter Estimator"),overflowBuffer(2,1), dataBuffer(overflowBuffer), overflowBufferSize(100), currentElectrode(-1), SVDCols(3)
 {
@@ -296,6 +297,7 @@ StringArray ParameterEstimator::getElectrodeNames()
 SVDcomputingThread::SVDcomputingThread() : Thread("SVD")
 {
     J.reportDone = false;
+    dictionary = Eigen::MatrixXd::Constant(40, 3, 0);
 }
 
 SVDjob::~SVDjob()
@@ -678,24 +680,19 @@ void SVDcomputingThread::run()
         J.svdcmp(U,J.spikes.size(),J.spikes[1].nSamples,sigvalues,eigvec);
 
 
-        (J.reportDone) = true;
-
-        std::ofstream myfile ("Dictionary.txt");
-
-        for (int k = 0; k < J.dim; k++)
+        for (int k = 0; k < dictionary.rows(); k++)
         {
-            for (int j = 0; j < J.dim; j++)
+            for (int j = 0; j < dictionary.cols(); j++)
             {
-                myfile << eigvec[k][j];
-                J.dict.addnew(eigvec[k][j]);
-                if (j != J.dim - 1)
+                //myfile << eigvec[k][j];
+                dictionary(k,j) = eigvec[k][j];
+                //if (j != J.dim - 1)
                 {
-                    myfile << ",";
+                    //myfile << ",";
                 }
             }
-            myfile << std::endl;
+            //myfile << std::endl;
         }
-        J.dict.setdim(J.dim,J.dim);
 
         //clear memory
         for (int k=0;k<J.dim;k++)
@@ -709,7 +706,6 @@ void SVDcomputingThread::run()
         delete U;
         delete sigvalues;
         delete eigvec;
-        std::cout<<"Finished the job"<<std::endl;
         (J.reportDone) = true;
 
     }
@@ -869,12 +865,11 @@ void ParameterEstimator::process(AudioSampleBuffer& buffer,
 
             if (SVDmethod) // starting the SVD Thread
             {
-                std::cout << "Before starting the SVD, a total of " << detectedSpikesAllElectrodes.size() << "spikes have been detected and stored." << std::endl;
+                std::cout << "A total of " << detectedSpikesAllElectrodes.size() << "spikes have been detected and stored." << std::endl;
                 std::cout<<detectedSpikesAllElectrodes.size()<<" spikes objects stored"<<std::endl;
                 job.SVDsetdim(detectedSpikesAllElectrodes,false);
                 std::cout<<"job was created" << std::endl;
                 dictionaryThread.addSVDjob(job);
-                std::cout<<"job was done? " << job.reportDone <<std::endl;
                 SVDmethod = false;
             }
             if(!allParametersEstimated)
@@ -882,20 +877,71 @@ void ParameterEstimator::process(AudioSampleBuffer& buffer,
 
                 if(dictionaryThread.J.reportDone)
                 {
-                    dictionary.setdim(dictionaryThread.J.dict.getrowdim(), dictionaryThread.J.dict.getcoldim());
-                    for (int i = 0; i<dictionaryThread.J.dict.getrowdim(); i++)
-                    {
-                        for (int j = 0; j< dictionaryThread.J.dict.getcoldim(); j++)
-                        {
-                            //dictionary[i].add(job.dict[i][j]);
-                            dictionary.addnew(dictionaryThread.J.dict.get(i,j));
+                    ProcessorGraph* gr = getProcessorGraph();
+                    juce::Array<GenericProcessor*> p = gr->getListOfProcessors();
 
+                    bool flag = false;
+                    for (int k=0;k<p.size();k++)
+                    {
+                        if (p[k]->getName() == "Spike Sorter")
+                        {
+                            node = (SpikeSorter*)p[k];
+                            flag = true;
+                        }
+
+                    }
+                    if (!flag)
+                    {
+                        std::cout << "Could not find a the Spike Sorter." << std::endl;
+                    }
+
+                    CircularQueue* queue = new CircularQueue[electrodes.size()];
+                    node->circbuffer.clear();
+
+                    for ( int i = 0; i < electrodes.size(); i++ )
+                    {
+                        node->circbuffer.add((queue+i));
+                        node->circbuffer[i]->setsize(node->P);
+                    }
+                    std::cout<<"Parameter Estimator contacted and Circular Buffers set. Buffer size and electrode number is " << node->circbuffer[0]->getsize() << "  and   " << node->circbuffer.size() << std::endl;
+
+                    Eigen::ArrayXd powers = Eigen::VectorXd::Zero(node->P).array();
+                    double start = 1;
+
+                    for (int i = 0; i < node->P; i++)
+                    {
+                        powers(i) = start;
+                        start *= acfLag1;
+                    }
+
+                    float powerIndex;
+                    for (int i = 0; i < node->P; i++)
+                    {
+                        powerIndex = -1*i;
+                        for (int j = 0; j < node->P; j++)
+                        {
+
+                            if ( i == j )
+                                node->sigma(i,j) = getElectrodeNoiseVar(0);
+                            else
+                                node->sigma(i,j) = getElectrodeNoiseVar(0)*powers(std::abs(powerIndex));
+                            powerIndex++;
                         }
                     }
-                    std::cout<<"Storage was done" << std::endl;
-                    allParametersEstimated = true;
-                    std::cout << dictionary.getrowdim() << " " << dictionary.getcoldim() <<std::endl;
 
+                    std::cout<< " ACF LAG in Spike Sorter is " << acfLag1 << " and the Var is " << getElectrodeNoiseVar(0) << "  "  << std::endl;
+                    double startTime1 = Time::getMillisecondCounterHiRes();
+                    node->lambda = node->sigma.inverse();
+                    double stopTime1 = Time::getMillisecondCounterHiRes();
+                    Logger *log1 = Logger::getCurrentLogger();
+                    log1->writeToLog("Time for 40 x 40 inverse is = " + String(stopTime1 - startTime1));
+                    node->lambdaQR.compute(node->lambda);
+                    node->logDeterminantOfLambda = node->lambdaQR.logAbsDeterminant();
+                    node->logPlusDetTermForNoiseLL = (-1*node->P)*LOG2PIBY2 + 0.5*node->logDeterminantOfLambda;
+                    std::cout<<"Determinant is = " << node->logDeterminantOfLambda << " and " << node->ReducedDictionary.col(0).size() << "x" << node->ReducedDictionary.row(0).size() << "//" << std::endl;
+                    node->setParameter(2,0);
+                    allParametersEstimated = true;
+                    node->allParametersEstimated = true;
                 }
             }
         }

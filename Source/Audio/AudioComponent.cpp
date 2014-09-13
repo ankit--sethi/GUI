@@ -82,7 +82,7 @@ AudioComponent::AudioComponent() : isPlaying(false)
     AudioDeviceManager::AudioDeviceSetup setup;
     deviceManager.getAudioDeviceSetup(setup);
 
-    setup.bufferSize = 8; /// larger buffer = fewer empty blocks, but longer latencies
+    setup.bufferSize = 1000; /// larger buffer = fewer empty blocks, but longer latencies
     setup.useDefaultInputChannels = false;
     setup.inputChannels = 0;
     setup.useDefaultOutputChannels = true;

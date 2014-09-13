@@ -124,7 +124,7 @@ bool FileReaderThread::updateBuffer()
         return false;
     if (dataBuffer->getNumSamples() < bufferSize)
     {
-        //       // std::cout << dataBuffer->getNumSamples() << std::endl;
+                std::cout << "DATABUFFER IS A MUTHERFUCKER" << dataBuffer->getNumSamples() << std::endl;
 
         if (ftell(input) >= lengthOfInputFile - bufferSize)
         {

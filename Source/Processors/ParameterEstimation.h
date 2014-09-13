@@ -44,9 +44,12 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "GenericProcessor.h"
 #include "Editors/ParameterEstimatorEditor.h"
 #include "Visualization/SpikeObject.h"
+#include "SpikeSorter.h"
 #include <algorithm>    // std::sort
 #include <list>
 #include <queue>
+#include "../../Resources/eigen-eigen-6b38706d90a9/Eigen/Dense"
+#include "../../Resources/eigen-eigen-6b38706d90a9/Eigen/QR"
 
 struct Electrode
 {
@@ -143,7 +146,7 @@ private:
 
 };
 
-class SVDcomputingThread : juce::Thread
+class SVDcomputingThread : juce::Thread, AccessClass
 {
 public:
     SVDcomputingThread();
@@ -154,9 +157,10 @@ public:
 
     SVDjob J;
 
+    Eigen::MatrixXd dictionary;
 };
 
-
+class SpikeSorter;
 
 class ParameterEstimator : public GenericProcessor
 
@@ -251,8 +255,11 @@ other way, the application will crash. */
 
     TwoDimMatrix dictionary;
 
+    SpikeSorter* node;
+
     SVDjob job;
     int SVDCols;
+    SVDcomputingThread dictionaryThread;
 
 private:
 
@@ -283,7 +290,7 @@ private:
 
     Array<int> electrodeCounter;
 
-    SVDcomputingThread dictionaryThread;
+
 
     bool useOverflowBuffer;
 

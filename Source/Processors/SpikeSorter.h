@@ -111,6 +111,15 @@ class CircularQueue
         float *array;
 
 };
+class SpikeSorter;
+class ParameterEstimator;
+
+class UpdateThread : juce::Thread
+{
+    UpdateThread(SpikeSorter* spikeSorter);
+    void run();
+    SpikeSorter* ss;
+};
 
 
 class SpikeSorter : public GenericProcessor
@@ -221,6 +230,12 @@ public:
     AudioProcessorEditor* createEditor();
     void updateSettings();
 
+    Eigen::HouseholderQR<Eigen::MatrixXd> lambdaQR;
+    juce::Array<Eigen::HouseholderQR<Eigen::MatrixXd>> QQR;
+    Eigen::VectorXf QLogAbsDeterminant;
+
+    bool allParametersEstimated;
+
 private:
 
     AudioSampleBuffer& dataBuffer;
@@ -253,9 +268,8 @@ private:
     double Hadjsum;
     bool thingsHaveChanged;
 
-    Eigen::HouseholderQR<Eigen::MatrixXd> lambdaQR;
-    juce::Array<Eigen::HouseholderQR<Eigen::MatrixXd>> QQR;
-    Eigen::VectorXf QLogAbsDeterminant;
+
+
     double Quad;
 
     uint8_t* spikeBuffer;

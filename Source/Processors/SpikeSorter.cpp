@@ -18,6 +18,7 @@
 #include <fstream>
 
 
+
 using namespace std;
 
 
@@ -124,6 +125,41 @@ bool CircularQueue::isBufferPlush(int minsize)
         return false;
 }
 
+UpdateThread::UpdateThread(SpikeSorter *spikeSorter) : Thread("UpdateThread")
+{
+    ss = spikeSorter;
+}
+
+void UpdateThread::run()
+{
+    /*int neuronID = ss->currentSpike.neuronID;
+    ss->ngamma(neuronID) = ss->ngamma(neuronID) + 1;
+    ss->deltaT = ss->masterSampleIndex + ss->sampleIndex - ss->P - ss->range + ss->idx - ss->tlastspike(neuronID);
+    ss->tlastspike(neuronID) = ss->masterSampleIndex + ss->sampleIndex - ss->P - ss->range + ss->idx;
+    double ebet = std::exp(-1*double(ss->beta)*double(ss->deltaT));
+    ss->mhat = (ss->muu0.col(neuronID).array()*(1-ebet) + ss->muu.col(neuronID).array()*ebet).matrix();
+    ss->muu0.col(neuronID) = ((ss->kappa(neuronID)*ss->muu0.col(neuronID).array() + ss->yhat.array())/(ss->kappa(neuronID)+1)).matrix();
+    ss->Qhat = ((1/ss->tau)*Eigen::MatrixXd::Identity(K,K).array()*(1-ebet*ebet) + ss->R[neuronID].inverse().array()*(ebet*ebet)).matrix();
+    ss->R.setUnchecked(neuronID, ss->Qhat.inverse() + ss->lamclus[neuronID]);
+    ss->Rinv.setUnchecked(neuronID, ss->R[neuronID].inverse());
+    ss->muu.col(neuronID) = ss->R[neuronID].inverse()*(ss->Qhat.inverse()*(ss->mhat) + ss->lamclus[neuronID]*ss->yhat);
+    Eigen::MatrixXd temp = ss->ReducedDictionaryTranspose*ss->lambda*ss->xwindLonger.segment(ss->idx,ss->P) + ss->lamclus[neuronID]*ss->muu.col(neuronID);
+    ss->yhat = ss->Qmat.inverse()*(temp);
+    double constant = (ss->kappa(neuronID)/(ss->kappa(neuronID) + 1));
+    Eigen::MatrixXd trans = (ss->yhat - ss->muu.col(neuronID))*((ss->yhat - ss->muu.col(neuronID)).transpose());
+    Eigen::MatrixXd newphi = (constant*trans.array()).matrix();
+    Eigen::MatrixXd temp1 = newphi + ss->phi[neuronID] + ss->Qmat.inverse();
+    ss->phi.setUnchecked(neuronID, temp1);
+    ss->kappa(neuronID) = ss->kappa(neuronID) + 1;
+    ss->nu(neuronID) = ss->nu(neuronID) + 1;
+    ss->lamclus.setUnchecked(neuronID, (ss->phi[neuronID].inverse().array()*ss->nu(neuronID)).matrix());
+    ss->lamclusinv.setUnchecked(neuronID, ss->lamclus[neuronID].inverse());
+    thingsHaveChanged = 1;
+    ss->QQR[neuronID].compute(ss->sigma + ss->ReducedDictionary*(ss->Rinv[neuronID] + ss->lamclusinv[neuronID])*ss->ReducedDictionaryTranspose);
+    ss->QLogAbsDeterminant(neuronID) = ss->QQR[neuronID].logAbsDeterminant();*/
+    ss->updateAllSortingParameters();
+}
+
 SpikeSorter::SpikeSorter()
     : GenericProcessor("Spike Sorter"), nullbuffer(2,100), dataBuffer(nullbuffer), stopTime(0), startTime(0) //, threshold(200.0), state(true)
 {
@@ -215,6 +251,7 @@ SpikeSorter::SpikeSorter()
     masterSampleIndex = 0;
     totalSpikesFound = 0;
     spikeBuffer = new uint8_t[MAX_SORTED_SPIKE_BUFFER_LEN];
+    allParametersEstimated = false;
 }
 
 void SpikeSorter::handleEvent(int eventType, MidiMessage& event, int sampleNum)
@@ -288,6 +325,40 @@ void SpikeSorter::setParameter(int parameterIndex, float newValue)
 
     }
 
+    if (parameterIndex == 2 )
+    {
+
+        ProcessorGraph* gr = getProcessorGraph();
+        juce::Array<GenericProcessor*> p = gr->getListOfProcessors();
+
+        bool flag = false;
+        for (int k=0;k<p.size();k++)
+        {
+            if (p[k]->getName() == "Parameter Estimator")
+            {
+                node = (ParameterEstimator*)p[k];
+                flag = true;
+            }
+
+        }
+        if (!flag)
+        {
+            std::cout << "Could not find a the Parameter Estimator." << std::endl;
+        }
+
+        node->dictionaryThread.dictionary = ReducedDictionary;
+        ReducedDictionaryTranspose = ReducedDictionary.transpose();
+
+        Eigen::HouseholderQR<Eigen::MatrixXd> t;
+        for (int i = 0; i < Cmax; i++)
+        {
+            t.compute(sigma + ReducedDictionary*(Rinv[i] + lamclusinv[i])*ReducedDictionaryTranspose);
+            QQR.add(t);
+            QLogAbsDeterminant(i) = QQR[i].logAbsDeterminant();
+        }
+
+    }
+
 }
 
 float SpikeSorter::getNextSample(int& chan)
@@ -300,14 +371,10 @@ float SpikeSorter::getNextSample(int& chan)
 
 void SpikeSorter::PackageCurrentSortedSpikeIntoBuffer(MidiBuffer& eventBuffer1)
 {
-    //std::cout << "ohh noes";
     int numBytes = packSortedSpike(currentSpike, spikeBuffer, MAX_SPIKE_BUFFER_LEN);
-
-    //std::cout << "reached heres" << std::endl;
 
     if (numBytes > 0)
         eventBuffer1.addEvent(spikeBuffer, numBytes, int(currentSpike.timestamp));
-
 }
 
 
@@ -316,7 +383,6 @@ void SpikeSorter::collectSamplesForSpikeObject(int electrodeIndex, float trigSam
     samplesBeingCollected = true;
     currentIndex = 0;
     currentSpike.eventType = SORTEDSPIKE;
-    //std::cout<< "The EVENTTYPE IS" << int(currentSpike.eventType) << std::endl;
 
     currentSpike.nChannels = 1;//node->electrodes[electrodeIndex]->numChannels;
     currentSpike.nSamples = P;
@@ -329,12 +395,11 @@ void SpikeSorter::collectSamplesForSpikeObject(int electrodeIndex, float trigSam
     }
 
     currentSpike.timestamp = masterSampleIndex + sampleIndex;
-    //std::cout << "The timestamp is = " << timestamp;
     lthr = Eigen::VectorXd::Zero(range + 1);
     lon = Eigen::MatrixXd::Zero(range + 1, neuronCount + 1);
     xwindLonger = Eigen::VectorXd::Zero(xwind.size() + range);
     xwindLonger.head(xwind.size()) = xwind;
-    //cout<<"reached here!!!!11111vvvvvvvvv";
+
     lthr(currentIndex) = likelihoodThreshold;
     for (int i = 0; i <= neuronCount; i++)
     {
@@ -348,29 +413,21 @@ void SpikeSorter::addNewSampleAndLikelihoodsToCurrentSpikeObject(float sample, M
     if (currentIndex <= range)
     {
         lthr(currentIndex) = likelihoodThreshold;
-        //cout<< "reached till just before lon";
         for (int i = 0; i <= neuronCount; i++)
         {
             lon(currentIndex, i) = likelihoodPerNeuron(i);
         }
-        //cout << xwind.size() << " is the xwindsize " << "and the currentIndex is" << currentIndex << "// and the xwindlonger size is " << xwindLonger.size() << "//";
         xwindLonger(xwind.size() + currentIndex - 1) = sample;
         currentIndex++;
     }
     else
     {
-        //cout<< "reached start of else";
         spikeDetected = false;
         samplesBeingCollected = false;
         double minthr = lthr.minCoeff(&idx);
 
-
         int Cnew;
         double maxlon = lon.row(idx).maxCoeff(&Cnew);
-        //cout << lon;
-        //cout << endl << "and the idx is" << idx <<endl;
-
-        //cout << " // Cnew and neuronCount is//" << Cnew << " // " << neuronCount;
         if (Cnew == neuronCount)
         {
             cout<< "reached here so apparently new neuron" << endl;
@@ -379,21 +436,19 @@ void SpikeSorter::addNewSampleAndLikelihoodsToCurrentSpikeObject(float sample, M
         currentSpike.neuronID = Cnew;
         currentSpike.nDictionary = K;
         currentIndex = 0;
-        //cout << "The INDEX IS //" << idx << "//";
-        //std::ofstream file("spikes.txt", std::fstream::app);
-        //file << xwindLonger.transpose() << endl;
         for (int i = 0; i < P; i ++)
         {
         currentSpike.data[i] = uint16(xwindLonger(idx + i)/ channels[chan]->bitVolts + 32768);
 
         }
 
+        // --- Update just enough to get yhat and pack spike
+        deltaT = masterSampleIndex + sampleIndex -P - range + idx - tlastspike(currentSpike.neuronID);
+        tlastspike(currentSpike.neuronID) = masterSampleIndex + sampleIndex - P - range + idx;
+        // ----
         updateAllSortingParameters();
-        //std::cout << "One Spike Handled!" << std::endl;
 
         PackageCurrentSortedSpikeIntoBuffer(eventBuffer);
-
-
 
         int numBytes = packSortedSpike(currentSpike, spikeBuffer, MAX_SPIKE_BUFFER_LEN);
         if (numBytes > 0)
@@ -413,8 +468,6 @@ void SpikeSorter::updateAllSortingParameters()
     for (int i = 0; i < yhat.size(); i++)
         currentSpike.principalComponent[i] = uint16(yhat(i)/ channels[0]->bitVolts + 32768);
     ngamma(neuronID) = ngamma(neuronID) + 1;
-    deltaT = masterSampleIndex + sampleIndex -P - range + idx - tlastspike(neuronID);
-    tlastspike(neuronID) = masterSampleIndex + sampleIndex - P - range + idx;
     double ebet = std::exp(-1*double(beta)*double(deltaT));
     mhat = (muu0.col(neuronID).array()*(1-ebet) + muu.col(neuronID).array()*ebet).matrix();
     muu0.col(neuronID) = ((kappa(neuronID)*muu0.col(neuronID).array() + yhat.array())/(kappa(neuronID)+1)).matrix();
@@ -445,108 +498,12 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
 {
     dataBuffer = buffer;
 
-
-    if (setLambda)
-    {
-
-        ProcessorGraph* gr = getProcessorGraph();
-        juce::Array<GenericProcessor*> p = gr->getListOfProcessors();
-
-        bool flag = false;
-        for (int k=0;k<p.size();k++)
-        {
-            if (p[k]->getName() == "Parameter Estimator")
-            {
-                node = (ParameterEstimator*)p[k];
-                flag = true;
-            }
-
-        }
-        if (!flag)
-        {
-            std::cout << "Could not find a Parameter Estimator." << std::endl;
-        }
-
-        CircularQueue* queue = new CircularQueue[node->electrodes.size()];
-        circbuffer.clear();
-
-        for ( int i = 0; i < node->electrodes.size(); i++ )
-        {
-            circbuffer.add((queue+i));
-            circbuffer[i]->setsize(P);
-        }
-        setLambda = false;
-        std::cout<<"Parameter Estimator contacted and Circular Buffers setup and the buffer size and electrode number is " << circbuffer[0]->getsize() << "  and   " << circbuffer.size() << std::endl;
-
-    }
-
-
-
     //checkForEvents(events);
 
-    if(node->allParametersEstimated)
+    if(allParametersEstimated)
     {
         // spike sort waveform using Vogelstein code
 
-
-        if(!paramsCopied)
-        {
-            std::cout<<"Entered Params copied if condition" << std::endl;
-
-
-            //Array<float>* test = sigma.getRawDataPointer();
-            Eigen::ArrayXd powers = Eigen::VectorXd::Zero(P).array();
-            double start = 1;
-
-            for (int i = 0; i < P; i++)
-            {
-                powers(i) = start;
-                start *= node->acfLag1;
-            }
-
-            float powerIndex;
-            for (int i = 0; i < P; i++)
-            {
-                powerIndex = -1*i;
-                for (int j = 0; j < P; j++)
-                {
-
-                    if ( i == j )
-                        sigma(i,j) = node->getElectrodeNoiseVar(0);
-                    else
-                        sigma(i,j) = node->getElectrodeNoiseVar(0)*powers(std::abs(powerIndex));
-                    powerIndex++;
-                }
-            }
-
-            std::cout<< " ACF LAG in Spike Sorter is " << node->acfLag1 << " and the Var is " << node->getElectrodeNoiseVar(0) << "  "  << std::endl;
-            double startTime1 = Time::getMillisecondCounterHiRes();
-            lambda = sigma.inverse();
-            double stopTime1 = Time::getMillisecondCounterHiRes();
-            //log1->writeToLog("Time for 40 x 40 inverse is = " + String(stopTime1 - startTime1));
-            lambdaQR.compute(lambda);
-            logDeterminantOfLambda = lambdaQR.logAbsDeterminant();
-            logPlusDetTermForNoiseLL = (-1*P)*LOG2PIBY2 + 0.5*logDeterminantOfLambda;
-            std::cout<<"reached line 3 and det is = " << logDeterminantOfLambda << " and " << ReducedDictionary.col(0).size() << "x" << ReducedDictionary.row(0).size() << "//" << std::endl;
-
-            for (int i = 0; i < P; i++)
-            {
-                for (int j = 0; j < K; j++)
-                {
-                    ReducedDictionary(i,j) = node->dictionary.get(i,j);
-                }
-            }
-            ReducedDictionaryTranspose = ReducedDictionary.transpose();
-            Eigen::HouseholderQR<Eigen::MatrixXd> t;
-            for (int i = 0; i < Cmax; i++)
-            {
-                t.compute(sigma + ReducedDictionary*(Rinv[i] + lamclusinv[i])*ReducedDictionaryTranspose);
-                QQR.add(t);
-                QLogAbsDeterminant(i) = QQR[i].logAbsDeterminant();
-            }
-            paramsCopied = true;
-            std::cout<<"Params copied and nSamples is" << nSamples << std::endl;
-        }
         Logger *log1 = Logger::getCurrentLogger();
         startTime = Time::getMillisecondCounterHiRes();
 
@@ -598,7 +555,6 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
 
                             for (int j = 0; j < neuronCount; j++)
                             {
-                                //Q = sigma + ReducedDictionary*(Rinv[neuronCount] + lamclusinv[neuronCount])*ReducedDictionaryTranspose;
                                 xwindloop = xwind - ReducedDictionary*muu.col(j);
 
                                 if( ( (masterSampleIndex + float(sampleIndex)) - tlastspike(j)) < 10000*50/10000 )  // THIS NEEDS TO BE INVESTIGATED
@@ -608,8 +564,6 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
                             }
                             if (thingsHaveChanged)
                             {
-                                //Q = sigma + (ReducedDictionary*(Rinv[neuronCount] + lamclusinv[neuronCount]))*(ReducedDictionaryTranspose);
-                                //QQR[neuronCount].compute(Q[neuronCount]);
                                 logPlusDetTermForNewNeuronLL = -(float(P)*LOG2PIBY2) - 0.5*QLogAbsDeterminant[neuronCount];
                                 thingsHaveChanged = 0;
                             }
@@ -619,15 +573,14 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
                             for (int i = 0; i <= neuronCount; i++ )
                             {
                                 likelihoodPerNeuron(i) =  likelihoodPerNeuron(i) + ltheta(i);
-                                //std::cout << "And " << likelihoodPerNeuron[i] << " is the Likelihood per Neuron for " << i << " and " << " ltheta is " << ltheta[i].getVar() << std::endl;
                             }
-                            //maximumLikelihoodPerNeuron = likelihoodPerNeuron.head(neuronCount + 1).maxCoeff();
+
                             for (int i = 0; i <= neuronCount; i++ )
                             {
                                     if(maximumLikelihoodPerNeuron < likelihoodPerNeuron(i))
                                     maximumLikelihoodPerNeuron = likelihoodPerNeuron(i);
                             }
-                            //likelihoodPerNeuron.head(neuronCount + 1) = (likelihoodPerNeuron.head(neuronCount + 1).array() - maximumLikelihoodPerNeuron).matrix();
+
                             for (int i = 0; i <= neuronCount; i++ )
                             {
                                 likelihoodPerNeuron(i) = likelihoodPerNeuron(i) - maximumLikelihoodPerNeuron;
@@ -641,8 +594,6 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
                             Hadj = std::log(Hadjsum);
 
                             likelihoodThreshold = likelihoodNoSpike - maximumLikelihoodPerNeuron - Hadj;
-                            //cout<< Hadj;
-                            //std::cout<< "Likelihood Threshold is = " << likelihoodThreshold << " and the threshold is " << threshold << std::endl;
                             if (likelihoodThreshold < threshold)
                                 spikeDetected = true;
 
@@ -650,12 +601,10 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
                             {
                                 if (samplesBeingCollected)
                                 {
-                                    //std::cout<< "came here to samplesBeingCollected " << std::endl;
                                     addNewSampleAndLikelihoodsToCurrentSpikeObject(sample, events, chan);
                                 }
                                 else
                                 {
-                                    //std::cout<< "threshold entered" << std::endl;
                                     collectSamplesForSpikeObject(i, sample);
                                 }
                             }
@@ -672,9 +621,5 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
         masterSampleIndex += sampleIndex;
          stopTime = Time::getMillisecondCounterHiRes();
         log1->writeToLog("Duration taken was " + String(stopTime - startTime) + "ms for nSamples = " + String(nSamples));
-
-
     }
-
-
 }
