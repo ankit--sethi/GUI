@@ -237,6 +237,7 @@ SpikeSorter::SpikeSorter()
     //nz = 0; // Not sure what this does. Possible the same thing.
     setParameter(1,0);
     xwind = Eigen::VectorXd::Zero(P);
+    xRDmu = Eigen::MatrixXd::Constant(Cmax, P, 0);
 
     threshold = std::log(pii/(1-pii));
     std::cout<< "Threshold is " << threshold;
@@ -253,6 +254,14 @@ SpikeSorter::SpikeSorter()
     totalSpikesFound = 0;
     spikeBuffer = new uint8_t[MAX_SORTED_SPIKE_BUFFER_LEN];
     allParametersEstimated = false;
+}
+
+SpikeSorter::~SpikeSorter()
+{
+    for (int i = 0; i < circbuffer.size(); i++)
+    {
+       // delete circbuffer[i];
+    }
 }
 
 void SpikeSorter::handleEvent(int eventType, MidiMessage& event, int sampleNum)
@@ -360,6 +369,7 @@ void SpikeSorter::setParameter(int parameterIndex, float newValue)
             QLLT.add(tllt);
             QLogAbsDeterminant(i) = QQR[i].logAbsDeterminant();
             cLL(i) = -(float(P)*LOG2PIBY2) - 0.5*QLogAbsDeterminant(i);
+            xRDmu.row(i) = (ReducedDictionary*muu.col(i)).transpose();
         }
 
     }
@@ -467,8 +477,8 @@ void SpikeSorter::addNewSampleAndLikelihoodsToCurrentSpikeObject(float sample, M
 
 void SpikeSorter::updateAllSortingParameters()
 {
-    //Logger *log1 = Logger::getCurrentLogger();
-    //double startTimet = Time::getMillisecondCounterHiRes();
+    Logger *log1 = Logger::getCurrentLogger();
+    double startTimet = Time::getMillisecondCounterHiRes();
     int neuronID = currentSpike.neuronID;
     Qmat = ReducedDictionaryTranspose*lambda*ReducedDictionary + lamclus[neuronID];
     yhat = Qmat.inverse()*(ReducedDictionaryTranspose*lambda*(xwindLonger.segment(idx, P)) + lamclus[neuronID]*muu.col(neuronID));
@@ -494,12 +504,14 @@ void SpikeSorter::updateAllSortingParameters()
     lamclus.setUnchecked(neuronID, (phi[neuronID].inverse().array()*nu(neuronID)).matrix());
     lamclusinv.setUnchecked(neuronID, lamclus[neuronID].inverse());
     thingsHaveChanged = 1;
-    QQR[neuronID].compute(sigma + ReducedDictionary*(Rinv[neuronID] + lamclusinv[neuronID])*ReducedDictionaryTranspose);
-    QLLT[neuronID].compute(sigma + ReducedDictionary*(Rinv[neuronID] + lamclusinv[neuronID])*ReducedDictionaryTranspose);
+    trans = sigma + ReducedDictionary*(Rinv[neuronID] + lamclusinv[neuronID])*ReducedDictionaryTranspose;
+    QQR[neuronID].compute(trans);
+    QLLT[neuronID].compute(trans);
     QLogAbsDeterminant(neuronID) = QQR[neuronID].logAbsDeterminant();
     cLL(neuronID) = -(float(P)*LOG2PIBY2) - 0.5*QLogAbsDeterminant[neuronID];
-    //double stopTimet = Time::getMillisecondCounterHiRes();
-    //log1->writeToLog("UPDATE DURATION is " + String(stopTimet - startTimet));
+    //xRDmu.row(neuronID) = (ReducedDictionary*muu.col(neuronID)).transpose();
+    double stopTimet = Time::getMillisecondCounterHiRes();
+    log1->writeToLog("UPDATE DURATION is " + String(stopTimet - startTimet));
 }
 
 
@@ -508,6 +520,8 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
                           int& nSamples)
 {
     dataBuffer = buffer;
+    double stopTime0, stopTime2, stopTime1;
+    double startTime0, startTime2, startTime1;
 
     //checkForEvents(events);
 
@@ -543,7 +557,7 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
                         {
 
                             // find likelihood of no spike
-                            double startTime2 = Time::getMillisecondCounterHiRes();
+                            startTime2 = Time::getMillisecondCounterHiRes();
                             circbuffer[i]->show(P, xwind);
                             //xwindloop = xwind;
 
@@ -565,14 +579,14 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
                             likelihoodNoSpike = logPlusDetTermForNoiseLL -0.5*float(xwind.transpose()*(lambdaLLT.solve(xwind)));
 
 
-                            double stopTime2 = Time::getMillisecondCounterHiRes();
+                            stopTime2 = Time::getMillisecondCounterHiRes();
                             //log1->writeToLog("First Duration is " + String(stopTime2 - startTime2) + "ms for nSamples = " + String(nSamples));
                             //log1->writeToLog("Step as percentage is " + String((frac10-frac1)*100/(stopTime2 - startTime2)) + "%");
-                            double startTime1 = Time::getMillisecondCounterHiRes();
+                            startTime1 = Time::getMillisecondCounterHiRes();
                             //#pragma omp parallel for
                             for (int j = 0; j < neuronCount; j++)
                             {
-                                xwindloop = xwind - ReducedDictionary*muu.col(j);
+                                xwindloop = xwind - ReducedDictionary*muu.col(j); // <-- think about this later
 
                                 if( ( (masterSampleIndex + float(sampleIndex)) - tlastspike(j)) < 10000*50/10000 )  // THIS NEEDS TO BE INVESTIGATED
                                     likelihoodPerNeuron(j) = cLL(j) - suppresslikelihood - 0.5*double(xwindloop.transpose()*(QLLT[j].solve(xwindloop)));
@@ -585,25 +599,29 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
                                 thingsHaveChanged = 0;
                             }
                             likelihoodPerNeuron(neuronCount) = cLL(neuronCount) - 0.5*double((xwind.transpose()*(QLLT[neuronCount].solve(xwind))));
-                            double stopTime1 = Time::getMillisecondCounterHiRes();
+                            stopTime1 = Time::getMillisecondCounterHiRes();
                             //log1->writeToLog("Second Duration is " + String(stopTime1 - startTime1) + "ms for nSamples = " + String(nSamples));
 
-                            double startTime0 = Time::getMillisecondCounterHiRes();
-                            for (int i = 0; i <= neuronCount; i++ )
+                            startTime0 = Time::getMillisecondCounterHiRes();
+                            /*for (int i = 0; i <= neuronCount; i++ )
                             {
                                 likelihoodPerNeuron(i) =  likelihoodPerNeuron(i) + ltheta(i);
-                            }
+                            }*/
+                            likelihoodPerNeuron.head(1+neuronCount) += ltheta.head(1+neuronCount);
 
-                            for (int i = 0; i <= neuronCount; i++ )
+                            maximumLikelihoodPerNeuron = likelihoodPerNeuron.head(1+neuronCount).maxCoeff();
+
+                            /*for (int i = 0; i <= neuronCount; i++ )
                             {
                                     if(maximumLikelihoodPerNeuron < likelihoodPerNeuron(i))
                                     maximumLikelihoodPerNeuron = likelihoodPerNeuron(i);
-                            }
+                            }*/
+                            likelihoodPerNeuron.head(1+neuronCount).array() -= maximumLikelihoodPerNeuron;
 
-                            for (int i = 0; i <= neuronCount; i++ )
+                            /*for (int i = 0; i <= neuronCount; i++ )
                             {
                                 likelihoodPerNeuron(i) = likelihoodPerNeuron(i) - maximumLikelihoodPerNeuron;
-                            }
+                            }*/
                             Hadjsum = 0;
                             for (int i = 0; i <= neuronCount; i++ )
                             {
@@ -631,6 +649,7 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
                             circbuffer[i]->dequeue(); // After everything is done, remove most past sample, ie, xwind(0)
                             double stopTime0 = Time::getMillisecondCounterHiRes();
                             //log1->writeToLog("Third Duration is " + String(stopTime0 - startTime0) + "ms for nSamples = " + String(nSamples));
+                            likelihoodNoSpike = logPlusDetTermForNoiseLL;
                         }
 
                     }
@@ -641,6 +660,8 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
         }
         masterSampleIndex += sampleIndex;
          stopTime = Time::getMillisecondCounterHiRes();
-        log1->writeToLog("Duration taken was " + String(stopTime - startTime) + "ms for nSamples = " + String(nSamples));
+        //log1->writeToLog("Duration taken was " + String(stopTime - startTime) + "ms for nSamples = " + String(nSamples));
+        //log1->writeToLog("The three durations as percentage are: " + String((stopTime2 - startTime2)*100*464/(stopTime - startTime)) + " AND " +
+                         //String((stopTime1 - startTime1)*100*464/(stopTime - startTime)) + " AND " + String((stopTime0 - startTime0)*100*464/(stopTime - startTime)) + " % ");
     }
 }

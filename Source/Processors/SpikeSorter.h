@@ -128,7 +128,7 @@ class SpikeSorter : public GenericProcessor
 public:
 
     SpikeSorter();
-    ~SpikeSorter(){ }
+    ~SpikeSorter();
     bool checkIfLogIsInf(float  num, float den);
 
     int P; //column span of the dictionary
@@ -200,6 +200,7 @@ public:
     juce::Array <CircularQueue*> circbuffer;
 
     Eigen::VectorXd xwind; //remember, xwind is "of the moment", xwind lacks history
+    Eigen::MatrixXd xRDmu;
     Eigen::VectorXd xwindloop;
 
     bool setLambda;
