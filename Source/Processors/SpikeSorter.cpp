@@ -356,7 +356,7 @@ void SpikeSorter::setParameter(int parameterIndex, float newValue)
             std::cout << "Could not find a the Parameter Estimator." << std::endl;
         }
 
-        node->dictionaryThread.dictionary = ReducedDictionary;
+        ReducedDictionary = node->dictionaryThread.dictionary;
         ReducedDictionaryTranspose = ReducedDictionary.transpose();
 
         Eigen::HouseholderQR<Eigen::MatrixXd> t;
@@ -511,7 +511,7 @@ void SpikeSorter::updateAllSortingParameters()
     cLL(neuronID) = -(float(P)*LOG2PIBY2) - 0.5*QLogAbsDeterminant[neuronID];
     //xRDmu.row(neuronID) = (ReducedDictionary*muu.col(neuronID)).transpose();
     double stopTimet = Time::getMillisecondCounterHiRes();
-    log1->writeToLog("UPDATE DURATION is " + String(stopTimet - startTimet));
+    //log1->writeToLog("UPDATE DURATION is " + String(stopTimet - startTimet));
 }
 
 
@@ -576,7 +576,7 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
 
                             }
 
-                            likelihoodNoSpike = logPlusDetTermForNoiseLL -0.5*float(xwind.transpose()*(lambdaLLT.solve(xwind)));
+                            likelihoodNoSpike = logPlusDetTermForNoiseLL -0.5*float(xwind.transpose()*(lambda*(xwind)));
 
 
                             stopTime2 = Time::getMillisecondCounterHiRes();
@@ -649,7 +649,7 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
                             circbuffer[i]->dequeue(); // After everything is done, remove most past sample, ie, xwind(0)
                             double stopTime0 = Time::getMillisecondCounterHiRes();
                             //log1->writeToLog("Third Duration is " + String(stopTime0 - startTime0) + "ms for nSamples = " + String(nSamples));
-                            likelihoodNoSpike = logPlusDetTermForNoiseLL;
+                            //likelihoodNoSpike = logPlusDetTermForNoiseLL;
                         }
 
                     }
