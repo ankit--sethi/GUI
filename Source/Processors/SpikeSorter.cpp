@@ -102,7 +102,7 @@ void CircularQueue::dequeue()
     }
 }
 
-void CircularQueue::show(int index, Eigen::VectorXd& returnedX) // caution: works right only if size of circular buffer = P
+void CircularQueue::show(int index, Eigen::VectorXf &returnedX) // caution: works right only if size of circular buffer = P
 {
     int count  = 0, i = front;
     while (count < index)
@@ -139,16 +139,16 @@ void UpdateThread::run()
     double ebet = std::exp(-1*double(ss->beta)*double(ss->deltaT));
     ss->mhat = (ss->muu0.col(neuronID).array()*(1-ebet) + ss->muu.col(neuronID).array()*ebet).matrix();
     ss->muu0.col(neuronID) = ((ss->kappa(neuronID)*ss->muu0.col(neuronID).array() + ss->yhat.array())/(ss->kappa(neuronID)+1)).matrix();
-    ss->Qhat = ((1/ss->tau)*Eigen::MatrixXd::Identity(K,K).array()*(1-ebet*ebet) + ss->R[neuronID].inverse().array()*(ebet*ebet)).matrix();
+    ss->Qhat = ((1/ss->tau)*Eigen::MatrixXf::Identity(K,K).array()*(1-ebet*ebet) + ss->R[neuronID].inverse().array()*(ebet*ebet)).matrix();
     ss->R.setUnchecked(neuronID, ss->Qhat.inverse() + ss->lamclus[neuronID]);
     ss->Rinv.setUnchecked(neuronID, ss->R[neuronID].inverse());
     ss->muu.col(neuronID) = ss->R[neuronID].inverse()*(ss->Qhat.inverse()*(ss->mhat) + ss->lamclus[neuronID]*ss->yhat);
-    Eigen::MatrixXd temp = ss->ReducedDictionaryTranspose*ss->lambda*ss->xwindLonger.segment(ss->idx,ss->P) + ss->lamclus[neuronID]*ss->muu.col(neuronID);
+    Eigen::MatrixXf temp = ss->ReducedDictionaryTranspose*ss->lambda*ss->xwindLonger.segment(ss->idx,ss->P) + ss->lamclus[neuronID]*ss->muu.col(neuronID);
     ss->yhat = ss->Qmat.inverse()*(temp);
     double constant = (ss->kappa(neuronID)/(ss->kappa(neuronID) + 1));
-    Eigen::MatrixXd trans = (ss->yhat - ss->muu.col(neuronID))*((ss->yhat - ss->muu.col(neuronID)).transpose());
-    Eigen::MatrixXd newphi = (constant*trans.array()).matrix();
-    Eigen::MatrixXd temp1 = newphi + ss->phi[neuronID] + ss->Qmat.inverse();
+    Eigen::MatrixXf trans = (ss->yhat - ss->muu.col(neuronID))*((ss->yhat - ss->muu.col(neuronID)).transpose());
+    Eigen::MatrixXf newphi = (constant*trans.array()).matrix();
+    Eigen::MatrixXf temp1 = newphi + ss->phi[neuronID] + ss->Qmat.inverse();
     ss->phi.setUnchecked(neuronID, temp1);
     ss->kappa(neuronID) = ss->kappa(neuronID) + 1;
     ss->nu(neuronID) = ss->nu(neuronID) + 1;
@@ -174,7 +174,7 @@ SpikeSorter::SpikeSorter()
 
 
     K = 3; // number of SVD components to use; need to make this a control
-    phi0 = (Eigen::MatrixXd::Identity(K,K).array()*0.1).matrix();
+    phi0 = (Eigen::MatrixXf::Identity(K,K).array()*0.1).matrix();
     //check phi0!!!
     number = 0;
     apii = 1;
@@ -194,20 +194,20 @@ SpikeSorter::SpikeSorter()
     lookahead = 500; //functionally, it is the size of the buffer
     range = 15; // defines basically the width of a spike
     // setting sigma
-    sigma = Eigen::MatrixXd::Zero(P,P);
+    sigma = Eigen::MatrixXf::Zero(P,P);
 
     pii=apii/bpii;
 
     thingsHaveChanged = 1;
 
-    Eigen::MatrixXd phi0nu0forlamclus = ((phi0.inverse().array()*nu0)).matrix();
-    Eigen::MatrixXd phi0nu0forlamclusinv = phi0nu0forlamclus.inverse();
-    Eigen::MatrixXd phi0nu0forR = ((phi0.inverse().array()*nu0)*0.2).matrix();
-    Eigen::MatrixXd phi0nu0forRinv = phi0nu0forR.inverse();
-    nu = Eigen::VectorXd::Constant(Cmax, nu0);
-    kappa = Eigen::VectorXd::Constant(Cmax, kappa0);
+    Eigen::MatrixXf phi0nu0forlamclus = ((phi0.inverse().array()*nu0)).matrix();
+    Eigen::MatrixXf phi0nu0forlamclusinv = phi0nu0forlamclus.inverse();
+    Eigen::MatrixXf phi0nu0forR = ((phi0.inverse().array()*nu0)*0.2).matrix();
+    Eigen::MatrixXf phi0nu0forRinv = phi0nu0forR.inverse();
+    nu = Eigen::VectorXf::Constant(Cmax, nu0);
+    kappa = Eigen::VectorXf::Constant(Cmax, kappa0);
     ltheta = Eigen::VectorXf::Zero(Cmax);
-    ngamma = Eigen::VectorXd::Zero(Cmax);
+    ngamma = Eigen::VectorXf::Zero(Cmax);
     tlastspike = Eigen::VectorXf::Zero(Cmax);
     likelihoodPerNeuron = Eigen::VectorXf::Zero(Cmax);
     cLL = Eigen::VectorXf::Zero(Cmax);
@@ -221,23 +221,23 @@ SpikeSorter::SpikeSorter()
         R.add(phi0nu0forR);
         Rinv.add(phi0nu0forRinv);
     }
-    muu = Eigen::MatrixXd::Constant(K, Cmax, 0);
-    muu0 = Eigen::MatrixXd::Constant(K, Cmax, 0);
-    //Q = Eigen::MatrixXd::Random(P, P);
-    Qinv = Eigen::MatrixXd::Constant(P, P, 0);
-    Qhat = Eigen::MatrixXd::Constant(K, K, 0);
-    Qmat = Eigen::MatrixXd::Constant(K, K, 0);
-    mhat = Eigen::VectorXd::Constant(K, 1, 0);
-    yhat = Eigen::VectorXd::Constant(K, 1, 0);
-    ReducedDictionary = Eigen::MatrixXd::Constant(P, K, 0);
-    ReducedDictionaryTranspose = Eigen::MatrixXd::Constant(K, P, 0);
+    muu = Eigen::MatrixXf::Constant(K, Cmax, 0);
+    muu0 = Eigen::MatrixXf::Constant(K, Cmax, 0);
+    //Q = Eigen::MatrixXf::Random(P, P);
+    Qinv = Eigen::MatrixXf::Constant(P, P, 0);
+    Qhat = Eigen::MatrixXf::Constant(K, K, 0);
+    Qmat = Eigen::MatrixXf::Constant(K, K, 0);
+    mhat = Eigen::VectorXf::Constant(K, 1, 0);
+    yhat = Eigen::VectorXf::Constant(K, 1, 0);
+    ReducedDictionary = Eigen::MatrixXf::Constant(P, K, 0);
+    ReducedDictionaryTranspose = Eigen::MatrixXf::Constant(K, P, 0);
 
 
     neuronCount = 0; // This is 'C' in the MATLAB code.
     //nz = 0; // Not sure what this does. Possible the same thing.
     setParameter(1,0);
-    xwind = Eigen::VectorXd::Zero(P);
-    xRDmu = Eigen::MatrixXd::Constant(Cmax, P, 0);
+    xwind = Eigen::VectorXf::Zero(P);
+    xRDmu = Eigen::MatrixXf::Constant(Cmax, P, 0);
 
     threshold = std::log(pii/(1-pii));
     std::cout<< "Threshold is " << threshold;
@@ -359,8 +359,8 @@ void SpikeSorter::setParameter(int parameterIndex, float newValue)
         ReducedDictionary = node->dictionaryThread.dictionary;
         ReducedDictionaryTranspose = ReducedDictionary.transpose();
 
-        Eigen::HouseholderQR<Eigen::MatrixXd> t;
-        Eigen::LLT<Eigen::MatrixXd> tllt;
+        Eigen::HouseholderQR<Eigen::MatrixXf> t;
+        Eigen::LLT<Eigen::MatrixXf> tllt;
         for (int i = 0; i < Cmax; i++)
         {
             t.compute(sigma + ReducedDictionary*(Rinv[i] + lamclusinv[i])*ReducedDictionaryTranspose);
@@ -410,9 +410,9 @@ void SpikeSorter::collectSamplesForSpikeObject(int electrodeIndex, float trigSam
     }
 
     currentSpike.timestamp = masterSampleIndex + sampleIndex;
-    lthr = Eigen::VectorXd::Zero(range + 1);
-    lon = Eigen::MatrixXd::Zero(range + 1, neuronCount + 1);
-    xwindLonger = Eigen::VectorXd::Zero(xwind.size() + range);
+    lthr = Eigen::VectorXf::Zero(range + 1);
+    lon = Eigen::MatrixXf::Zero(range + 1, neuronCount + 1);
+    xwindLonger = Eigen::VectorXf::Zero(xwind.size() + range);
     xwindLonger.head(xwind.size()) = xwind;
 
     lthr(currentIndex) = likelihoodThreshold;
@@ -488,16 +488,16 @@ void SpikeSorter::updateAllSortingParameters()
     double ebet = std::exp(-1*double(beta)*double(deltaT));
     mhat = (muu0.col(neuronID).array()*(1-ebet) + muu.col(neuronID).array()*ebet).matrix();
     muu0.col(neuronID) = ((kappa(neuronID)*muu0.col(neuronID).array() + yhat.array())/(kappa(neuronID)+1)).matrix();
-    Qhat = ((1/tau)*Eigen::MatrixXd::Identity(K,K).array()*(1-ebet*ebet) + R[neuronID].inverse().array()*(ebet*ebet)).matrix();
+    Qhat = ((1/tau)*Eigen::MatrixXf::Identity(K,K).array()*(1-ebet*ebet) + R[neuronID].inverse().array()*(ebet*ebet)).matrix();
     R.setUnchecked(neuronID, Qhat.inverse() + lamclus[neuronID]);
     Rinv.setUnchecked(neuronID, R[neuronID].inverse());
     muu.col(neuronID) = R[neuronID].inverse()*(Qhat.inverse()*(mhat) + lamclus[neuronID]*yhat);
-    Eigen::MatrixXd temp = ReducedDictionaryTranspose*lambda*xwindLonger.segment(idx,P) + lamclus[neuronID]*muu.col(neuronID);
+    Eigen::MatrixXf temp = ReducedDictionaryTranspose*lambda*xwindLonger.segment(idx,P) + lamclus[neuronID]*muu.col(neuronID);
     yhat = Qmat.inverse()*(temp);
     double constant = (kappa(neuronID)/(kappa(neuronID) + 1));
-    Eigen::MatrixXd trans = (yhat - muu.col(neuronID))*((yhat - muu.col(neuronID)).transpose());
-    Eigen::MatrixXd newphi = (constant*trans.array()).matrix();
-    Eigen::MatrixXd temp1 = newphi + phi[neuronID] + Qmat.inverse();
+    Eigen::MatrixXf trans = (yhat - muu.col(neuronID))*((yhat - muu.col(neuronID)).transpose());
+    Eigen::MatrixXf newphi = (constant*trans.array()).matrix();
+    Eigen::MatrixXf temp1 = newphi + phi[neuronID] + Qmat.inverse();
     phi.setUnchecked(neuronID, temp1);
     kappa(neuronID) = kappa(neuronID) + 1;
     nu(neuronID) = nu(neuronID) + 1;

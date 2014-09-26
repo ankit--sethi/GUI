@@ -157,7 +157,7 @@ public:
 
     SVDjob J;
 
-    Eigen::MatrixXd dictionary;
+    Eigen::MatrixXf dictionary;
 };
 
 class SpikeSorter;

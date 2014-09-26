@@ -297,7 +297,7 @@ StringArray ParameterEstimator::getElectrodeNames()
 SVDcomputingThread::SVDcomputingThread() : Thread("SVD")
 {
     J.reportDone = false;
-    dictionary = Eigen::MatrixXd::Constant(40, 3, 0);
+    dictionary = Eigen::MatrixXf::Constant(40, 3, 0);
 }
 
 SVDjob::~SVDjob()
@@ -905,7 +905,7 @@ void ParameterEstimator::process(AudioSampleBuffer& buffer,
                     }
                     std::cout<<"Parameter Estimator contacted and Circular Buffers set. Buffer size and electrode number is " << node->circbuffer[0]->getsize() << "  and   " << node->circbuffer.size() << std::endl;
 
-                    Eigen::ArrayXd powers = Eigen::VectorXd::Zero(node->P).array();
+                    Eigen::ArrayXf powers = Eigen::VectorXf::Zero(node->P).array();
                     double start = 1;
 
                     for (int i = 0; i < node->P; i++)

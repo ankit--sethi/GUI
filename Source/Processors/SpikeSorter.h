@@ -102,7 +102,7 @@ class CircularQueue
         ~CircularQueue() { }
         void setsize(int siz);
         void enqueue(float item);
-        void show(int index, Eigen::VectorXd& returnedX);
+        void show(int index, Eigen::VectorXf& returnedX);
         void dequeue();
         bool isBufferPlush(int minsize);
         int getsize();
@@ -137,7 +137,7 @@ public:
     float nu0;
     unsigned int K;
     //Array<Array<float>> phi0;
-    Eigen::MatrixXd phi0;
+    Eigen::MatrixXf phi0;
     float apii;
     float bpii;
     float beta;
@@ -148,29 +148,29 @@ public:
     int range;
     float pii;
     //Array <float> nu;
-    Eigen::RowVectorXd nu;
-    juce::Array <Eigen::MatrixXd> phi;
-    juce::Array <Eigen::MatrixXd> lamclus;
-    juce::Array <Eigen::MatrixXd> lamclusinv;
-    juce::Array <Eigen::MatrixXd> R;
-    juce::Array <Eigen::MatrixXd> Rinv;
-    Eigen::MatrixXd Qt;
-    Eigen::MatrixXd muu0;
-    Eigen::RowVectorXd kappa;
-    Eigen::MatrixXd muu;
-    Eigen::MatrixXd lambda;
+    Eigen::RowVectorXf nu;
+    juce::Array <Eigen::MatrixXf> phi;
+    juce::Array <Eigen::MatrixXf> lamclus;
+    juce::Array <Eigen::MatrixXf> lamclusinv;
+    juce::Array <Eigen::MatrixXf> R;
+    juce::Array <Eigen::MatrixXf> Rinv;
+    Eigen::MatrixXf Qt;
+    Eigen::MatrixXf muu0;
+    Eigen::RowVectorXf kappa;
+    Eigen::MatrixXf muu;
+    Eigen::MatrixXf lambda;
     double logDeterminantOfLambda;
-    Eigen::MatrixXd sigma;
-    juce::Array<Eigen::MatrixXd> Q;
-    //Eigen::MatrixXd Q;
-    Eigen::MatrixXd Qinv;
-    Eigen::MatrixXd ReducedDictionary; //This is A (PxK)
-    Eigen::MatrixXd ReducedDictionaryTranspose;
-    Eigen::MatrixXd Qmat;
-    Eigen::VectorXd yhat;
-    Eigen::VectorXd mhat;
-    Eigen::MatrixXd Qhat;
-    Eigen::VectorXd xwindLonger;
+    Eigen::MatrixXf sigma;
+    juce::Array<Eigen::MatrixXf> Q;
+    //Eigen::MatrixXf Q;
+    Eigen::MatrixXf Qinv;
+    Eigen::MatrixXf ReducedDictionary; //This is A (PxK)
+    Eigen::MatrixXf ReducedDictionaryTranspose;
+    Eigen::MatrixXf Qmat;
+    Eigen::VectorXf yhat;
+    Eigen::VectorXf mhat;
+    Eigen::MatrixXf Qhat;
+    Eigen::VectorXf xwindLonger;
     unsigned int neuronCount; // this is C in the code
 
     double Hadj;
@@ -184,7 +184,7 @@ public:
     bool test;
     Eigen::RowVectorXf tlastspike;
     Eigen::RowVectorXf ltheta;
-    Eigen::RowVectorXd ngamma;
+    Eigen::RowVectorXf ngamma;
 
     float threshold;
     float totalSpikesFound;
@@ -199,9 +199,9 @@ public:
 
     juce::Array <CircularQueue*> circbuffer;
 
-    Eigen::VectorXd xwind; //remember, xwind is "of the moment", xwind lacks history
-    Eigen::MatrixXd xRDmu;
-    Eigen::VectorXd xwindloop;
+    Eigen::VectorXf xwind; //remember, xwind is "of the moment", xwind lacks history
+    Eigen::MatrixXf xRDmu;
+    Eigen::VectorXf xwindloop;
 
     bool setLambda;
 
@@ -231,10 +231,10 @@ public:
     AudioProcessorEditor* createEditor();
     void updateSettings();
 
-    Eigen::HouseholderQR<Eigen::MatrixXd> lambdaQR;
-    Eigen::LLT<Eigen::MatrixXd> lambdaLLT;
-    juce::Array<Eigen::HouseholderQR<Eigen::MatrixXd>> QQR;
-    juce::Array<Eigen::LLT<Eigen::MatrixXd>> QLLT;
+    Eigen::HouseholderQR<Eigen::MatrixXf> lambdaQR;
+    Eigen::LLT<Eigen::MatrixXf> lambdaLLT;
+    juce::Array<Eigen::HouseholderQR<Eigen::MatrixXf>> QQR;
+    juce::Array<Eigen::LLT<Eigen::MatrixXf>> QLLT;
     Eigen::VectorXf QLogAbsDeterminant;
 
     bool allParametersEstimated;
@@ -253,8 +253,8 @@ private:
     SortedSpikeObject currentSpike;
     int currentIndex;  // this is for keeping track of indices after threshold crossing
 
-    Eigen::VectorXd lthr;
-    Eigen::MatrixXd lon;
+    Eigen::VectorXf lthr;
+    Eigen::MatrixXf lon;
 
     bool buffersArePlush;
 
