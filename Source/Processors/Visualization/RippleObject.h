@@ -45,6 +45,7 @@ struct RippleObject
 
     uint8_t    eventType;
     uint8_t    start;
+    uint64_t   timestamp;
     uint8_t    eventId;
     uint8_t    eventChannel;
 

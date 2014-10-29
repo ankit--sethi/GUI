@@ -119,8 +119,6 @@ class TwoDimMatrix
         unsigned int xSize;
         unsigned int ySize;
         std::vector<float> data;
-
-
 };
 
 
@@ -133,10 +131,11 @@ public:
     //SVDjob(Array<SpikeObject> _spikes, bool _reportDone);
     SVDjob() {}
     ~SVDjob();
-    void SVDsetdim(Array<SpikeObject> _spikes, bool _reportDone);
+    void SVDsetdim(Array<SpikeObject> _spikes, bool _reportDone, int electrodeIndex);
     float **U;
     Array<SpikeObject> spikes;
     int dim;
+    int electrodeIndex;
     TwoDimMatrix dict;
     bool reportDone;
     int svdcmp(float **a, int nRows, int nCols, float *w, float **v);
@@ -157,7 +156,7 @@ public:
 
     SVDjob J;
 
-    Eigen::MatrixXf dictionary;
+    juce::Array<Eigen::MatrixXf> dictionary;
 };
 
 class SpikeSorter;
@@ -244,7 +243,7 @@ other way, the application will crash. */
     StringArray electrodeTypes;
     StringArray getElectrodeNames();
 
-    bool allParametersEstimated;
+    juce::Array<bool> allParametersEstimated;
 
     void saveCustomParametersToXml(XmlElement* parentElement);
     void loadCustomParametersFromXml();
@@ -257,7 +256,7 @@ other way, the application will crash. */
 
     SpikeSorter* node;
 
-    SVDjob job;
+    juce::Array<SVDjob> job;
     int SVDCols;
     SVDcomputingThread dictionaryThread;
 
@@ -286,9 +285,9 @@ private:
 
     int dictionarySize;
 
-
-
     Array<int> electrodeCounter;
+
+    Eigen::Matrix<float,20,1> tempSpike;
 
 
 

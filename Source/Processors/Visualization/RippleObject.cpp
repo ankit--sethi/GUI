@@ -32,7 +32,8 @@ int packRipple(RippleObject* s, uint8_t* buffer, int bufferSize)
     idx += 1;
     memcpy(buffer+idx, &(s->start), 1);
     idx += 1;
-
+    memcpy(buffer+idx, &(s->timestamp), 8);
+    idx += 8;
     //std::cout<<"reached to just before packing timestamp "<<s->timestamp<<std::endl;
     memcpy(buffer+idx, &(s->eventId), 1);
     idx += 1;
@@ -65,6 +66,9 @@ bool unpackRipple(RippleObject* s, const uint8_t* buffer, int bufferSize)
 
     memcpy(&(s->start), buffer+idx, 1);
     idx += 1;
+
+    memcpy(&(s->timestamp), buffer+idx, 8);
+    idx += 8;
 
     memcpy(&(s->eventId), buffer+idx, 1);
     //std::cout<<"reached to just after timestamp"<<s->timestamp<<std::endl;

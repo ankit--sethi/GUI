@@ -23,6 +23,9 @@ SpikeSortingDisplay::SpikeSortingDisplay()
     : GenericProcessor("Sorted Spike Viewer"), displayBufferSize(5)
 {
     redraw = false;
+    ripplePresent = false;
+    forRasterPlot.rippleID = 0;
+    ripplesDisplayed = 0;
 }
 
 SpikeSortingDisplay::~SpikeSortingDisplay()
@@ -154,7 +157,7 @@ void SpikeSortingDisplay::process(AudioSampleBuffer& buffer,
 {
     checkForEvents(events);
 
-     if (redraw)
+    if (redraw)
     {
         for (int i = 0; i < getNumElectrodes(); i++)
         {
@@ -170,9 +173,21 @@ void SpikeSortingDisplay::process(AudioSampleBuffer& buffer,
             }
 
         }
-
         redraw = false;
     }
+
+    if(canDrawOne)
+    {
+        for (int i = 0; i < getNumElectrodes(); i++)
+        {
+
+            Electrode& e = electrodes.getReference(i);
+            e.pcPlot->processRasterPlot(forRasterPlot, i);
+        }
+        canDrawOne = false;
+        forRasterPlot.accruedRasterMarks.clearQuick();
+    }
+
 }
 
 void SpikeSortingDisplay::handleEvent(int eventType, MidiMessage& event, int samplePosition)
@@ -195,6 +210,32 @@ void SpikeSortingDisplay::handleEvent(int eventType, MidiMessage& event, int sam
                 //std::cout << "buffer is valid";
                 int electrodeNum = newSpike.source;
 
+                if (ripplePresent)
+                {
+                    if(newSpike.timestamp > forRasterPlot.startRipple)
+                    {
+                    RasterData newMark;
+                    newMark.neuronID = newSpike.neuronID;
+                    newMark.timestamp = newSpike.timestamp;
+                    newMark.electrodeNum = electrodeNum;
+
+                    forRasterPlot.accruedRasterMarks.add(newMark);
+                    }
+                }
+                else
+                {
+                    if(newSpike.timestamp < forRasterPlot.stopRipple)
+                    {
+                    RasterData newMark;
+                    newMark.neuronID = newSpike.neuronID;
+                    newMark.timestamp = newSpike.timestamp;
+                    newMark.electrodeNum = electrodeNum;
+
+                    forRasterPlot.accruedRasterMarks.add(newMark);
+                    }
+                }
+
+
                 Electrode& e = electrodes.getReference(electrodeNum);
 
                 if (e.currentSpikeIndex < displayBufferSize)
@@ -205,5 +246,35 @@ void SpikeSortingDisplay::handleEvent(int eventType, MidiMessage& event, int sam
                 }
             }
         }
+    }
+    if (eventType == RIPPLE)
+    {
+        const uint8_t* dataptr = event.getRawData();
+        int bufferSize = event.getRawDataSize();
+
+        if (bufferSize > 0)
+        {
+
+
+            bool isValid = unpackRipple(&newRipple, dataptr, bufferSize);
+
+            if (isValid)
+            {
+                if (newRipple.start == 1)
+                {
+                    ripplePresent = true;
+                    forRasterPlot.startRipple = newRipple.timestamp;
+                    forRasterPlot.rippleID = newRipple.eventId;
+                }
+                if (newRipple.start == 0)
+                {
+                    ripplePresent = false;
+                    forRasterPlot.stopRipple = newRipple.timestamp;
+                    canDrawOne = true;
+                }
+            }
+        }
+
+        ripplePresent = true;
     }
 }

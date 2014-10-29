@@ -43,6 +43,8 @@ class GenericAxes;
 class PCAxes;
 class PCPlot;
 class PCDisplay;
+struct RasterArray;
+struct RasterData;
 
 class SortedSpikeCanvas : public Visualizer, public Button::Listener, public AccessClass
 {
@@ -129,7 +131,7 @@ private:
     OwnedArray<PCPlot> pcPlots;
 
 };
-
+class RasterPlot;
 class PCPlot : public Component, Button::Listener
 {
     public:
@@ -143,6 +145,7 @@ class PCPlot : public Component, Button::Listener
     void deselect();
 
     void processSortedSpikeObject(const SortedSpikeObject& s);
+    void processRasterPlot(const RasterArray& r, int electrodeNum);
 
     SortedSpikeCanvas* canvas;
 
@@ -178,9 +181,26 @@ private:
     void setLimitsOnAxes();
     void updateAxesPositions();
 
+    ScopedPointer <RasterPlot> raster;
+
     String name;
 
     Font font;
+};
+
+class RasterPlot : public Component
+{
+public:
+    RasterPlot();
+    ~RasterPlot() {}
+
+    bool updateRasterData(const RasterArray& s, int electrodeNum);
+    void situateRasterData(const RasterData& s, unsigned long int startTimestamp, unsigned long int endTimeStamp);
+    Image ProjectionImage;
+    //float startTimeStampPixel;
+    //float endTimeStampPixel;
+    void clear();
+    void paint(Graphics& g);
 };
 
 class PCAxes : public GenericAxes
@@ -190,6 +210,7 @@ public:
     ~PCAxes() {}
 
     bool updateSpikeData(const SortedSpikeObject& s);
+    bool updateSpikeData(const SortedSpikeObject& s, int index);
 
     void paint(Graphics& g);
 
@@ -198,7 +219,7 @@ public:
     void setRange(float, float);
 
     void drawGrid(Graphics& g);
-    void updatePrincipalComponents(const SortedSpikeObject& s);
+    void updatePrincipalComponents(const SortedSpikeObject& s, int index);
 
     Image projectionImage;
 private:

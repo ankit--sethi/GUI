@@ -58,7 +58,9 @@ ParameterEstimator::ParameterEstimator()
         cssp = 0;
         delta = 0;
         sampleRate = 10000;
-        allParametersEstimated = false;
+        for (int i = 0; i < 16; i++)
+        allParametersEstimated.add(false);
+        tempSpike.fill(0);
 
 }
 
@@ -150,8 +152,8 @@ bool ParameterEstimator::addElectrode(int nChans)
 
     newElectrode->name = newName;
     newElectrode->numChannels = nChans;
-    newElectrode->prePeakSamples = 8;
-    newElectrode->postPeakSamples = 32;
+    newElectrode->prePeakSamples = 15;
+    newElectrode->postPeakSamples = 15;
     newElectrode->paramAveragingCount = 0;
     newElectrode->mu = 0;
     newElectrode->sigma = 0;
@@ -297,7 +299,8 @@ StringArray ParameterEstimator::getElectrodeNames()
 SVDcomputingThread::SVDcomputingThread() : Thread("SVD")
 {
     J.reportDone = false;
-    dictionary = Eigen::MatrixXf::Constant(40, 3, 0);
+    for (int i = 0; i < 16; i++)
+    dictionary.add(Eigen::MatrixXf::Constant(30, 3, 0));
 }
 
 SVDjob::~SVDjob()
@@ -381,6 +384,9 @@ void ParameterEstimator::addWaveformToSpikeObject(SpikeObject* s,
 
     // cycle through buffer
 
+    std::ofstream myfile;
+    myfile.open("detectedspikes.csv", std::fstream::app);
+
     if (isChannelActive(electrodeNumber, currentChannel))
     {
         for (int sample = 0; sample < spikeLength; sample++)
@@ -388,12 +394,18 @@ void ParameterEstimator::addWaveformToSpikeObject(SpikeObject* s,
 
             // warning -- be careful of bitvolts conversion
             s->data[currentIndex] = uint16(getNextSample(*(electrodes[electrodeNumber]->channels+currentChannel)) / channels[chan]->bitVolts + 32768);
+            myfile << getNextSample(*(electrodes[electrodeNumber]->channels+currentChannel));
+            if ( sample != spikeLength - 1)
+            {
+                myfile << ",";
+            }
             currentIndex++;
             sampleIndex++;
 
             //std::cout << currentIndex << std::endl;
 
         }
+        myfile << std::endl;
     }
     else
     {
@@ -409,7 +421,6 @@ void ParameterEstimator::addWaveformToSpikeObject(SpikeObject* s,
 
         }
     }
-
 
     sampleIndex -= spikeLength; // reset sample index
 
@@ -428,11 +439,12 @@ static int iminarg1,iminarg2;
 static double sqrarg;
 #define SQR(a) ((sqrarg = (a)) == 0.0 ? 0.0 : sqrarg * sqrarg)
 
-void SVDjob::SVDsetdim(Array<SpikeObject> _spikes, bool _reportDone)
+void SVDjob::SVDsetdim(Array<SpikeObject> _spikes, bool _reportDone, int electrodeIndex)
 {
     dim = _spikes[0].nChannels*_spikes[0].nSamples;
     spikes = _spikes;
     reportDone = _reportDone;
+    SVDjob::electrodeIndex = electrodeIndex;
 }
 
 float SVDjob::pythag(float a, float b) {
@@ -679,21 +691,28 @@ void SVDcomputingThread::run()
 
         J.svdcmp(U,J.spikes.size(),J.spikes[1].nSamples,sigvalues,eigvec);
 
+        Eigen::Matrix<float, 30, 3> tempmatrix;
+        tempmatrix.fill(0);
 
-        for (int k = 0; k < dictionary.rows(); k++)
+        std::ofstream myfile;
+        myfile.open("dictionary.csv", std::fstream::app);
+        for (int k = 0; k < dictionary[J.electrodeIndex].rows(); k++)
         {
-            for (int j = 0; j < dictionary.cols(); j++)
+            for (int j = 0; j < dictionary[J.electrodeIndex].cols(); j++)
             {
-                //myfile << eigvec[k][j];
-                dictionary(k,j) = eigvec[k][j];
-                //if (j != J.dim - 1)
+                myfile << eigvec[k][j];
+                tempmatrix(k,j) = eigvec[k][j];
+
+                if (j != J.dim - 1)
                 {
-                    //myfile << ",";
+                    myfile << ",";
                 }
             }
-            //myfile << std::endl;
+            myfile << std::endl;
         }
 
+        dictionary.setUnchecked(J.electrodeIndex, tempmatrix);
+        //std::cout << "DICTIONARY BEING MADE" << dictionary[J.electrodeIndex];
         //clear memory
         for (int k=0;k<J.dim;k++)
         {
@@ -751,16 +770,13 @@ void ParameterEstimator::process(AudioSampleBuffer& buffer,
     checkForEvents(events);
 
     // this marks beginning of parameter detection --------------------------
-    for(int i = 0; i < 1; i++)//electrodes.size(); i++)
+    for(int i = 0; i < electrodes.size(); i++)
     {
         electrode = electrodes[i];
-        sampleIndex = electrode->lastBufferIndex;// subtract 1 to account for
-        // increment at start of getNextSample()
-
+        sampleIndex = electrode->lastBufferIndex;
 
         while (samplesAvailable(nSamples))
         {
-            sampleIndex++;
             electrode->paramAveragingCount++;
 
             for(int chan=0; chan < 1 ; chan++) //detecting on 1 channel only currently. to be expanded. CUSUM -> multichannel/distributed CUSUM
@@ -770,7 +786,8 @@ void ParameterEstimator::process(AudioSampleBuffer& buffer,
 
                     int currentChannel = *(electrode->channels+chan);
 
-                    double var = getCurrentSample(currentChannel);
+                    double var = getNextSample(currentChannel);
+
 
                     //std::cout<< var << std::endl;
                     if (electrode->paramAveragingCount < sampleRate*30) //averaging for 30 s to find noise mu and sigma (needs to be changed to that each electrode gets its own noise measurement)
@@ -785,7 +802,7 @@ void ParameterEstimator::process(AudioSampleBuffer& buffer,
                     if (electrode->paramAveragingCount == int(sampleRate*30))
                     {
                         electrode->musqrd = (electrode->mu)*(electrode->mu);
-                        electrode->sigma = sqrt(electrode->sumOfSquaresOfDifferences/electrode->paramAveragingCount);
+                        electrode->sigma = std::sqrt(electrode->sumOfSquaresOfDifferences/electrode->paramAveragingCount); //DANGER?
                         std::cout<<"End of first 30 seconds" << std::endl;
                         std::cout << "The mu and sigma for ripple detection are - " << electrode->mu << " and " << electrode->sigma << std::endl;
                     }
@@ -795,20 +812,29 @@ void ParameterEstimator::process(AudioSampleBuffer& buffer,
                         {
                             std::cout<< "Starting spike detection." << std::endl;
                         }
-                        if (-var > 3*electrode->sigma) // trigger spike
+                        if (var > 5*electrode->sigma) // trigger spike
                         {
 
                             //std::cout << "Spike detected on electrode " << i << std::endl;
                             // find the peak
                             int peakIndex = sampleIndex;
-
-                            while (-getCurrentSample(currentChannel) < -getNextSample(currentChannel) && sampleIndex < peakIndex + electrode->postPeakSamples)
+                            for (int i = 0 ; i < 5; i++)
                             {
+                                tempSpike(i) = getCurrentSample(currentChannel);
                                 sampleIndex++;
                             }
+                            int offset;
+                            int non = tempSpike.maxCoeff(&offset);
+                            peakIndex += offset - 1;
+                            //sampleIndex -= 15;
 
-                            peakIndex = sampleIndex;
-                            sampleIndex -= (electrode->prePeakSamples+1);
+                            //while (-getCurrentSample(currentChannel) < -getNextSample(currentChannel))//&& sampleIndex < peakIndex + electrode->postPeakSamples)
+                            {
+                                //sampleIndex++;
+                            }
+                            //--sampleIndex;
+
+                            sampleIndex = peakIndex - (electrode->prePeakSamples-1);
 
                             SpikeObject newSpike;
                             newSpike.timestamp = peakIndex;
@@ -818,7 +844,7 @@ void ParameterEstimator::process(AudioSampleBuffer& buffer,
                             currentIndex = 0;
 
                             // package spikes;
-                            for (int channel = 0; channel < electrode->numChannels; channel++)
+                            for (int channel = 0; channel < 1; channel++)
                             {
                                 addWaveformToSpikeObject(&newSpike, peakIndex, i, channel);
                             }
@@ -835,7 +861,7 @@ void ParameterEstimator::process(AudioSampleBuffer& buffer,
                             }
 
                             // advance the sample index
-                            sampleIndex = peakIndex + electrode->postPeakSamples;
+                            sampleIndex = peakIndex + electrode->postPeakSamples + 10;
 
                             break; // quit spike "for" loop
                         } // end spike trigger
@@ -844,9 +870,9 @@ void ParameterEstimator::process(AudioSampleBuffer& buffer,
 
                     if (electrode->paramAveragingCount < sampleRate*60 && electrode->paramAveragingCount >= sampleRate*30)
                     {
+                        sampleIndex += 4;
                         double var0 = getNextSample(currentChannel);
-                        //double renormratio = (electrode->paramAveragingCount)/(electrode->paramAveragingCount+1);
-
+                        sampleIndex -= 4;
                         cssp = cssp + (var0*var - (electrode->mu)*(var0 + var) + electrode->musqrd);
                     }
                     if (electrode->paramAveragingCount == int(sampleRate*60))
@@ -857,26 +883,30 @@ void ParameterEstimator::process(AudioSampleBuffer& buffer,
                     }
                 }
             }
+            sampleIndex +=4;
         }
         //this marks the ending of parameter detection -----------------------------
 
-        if (electrode->paramAveragingCount >= (sampleRate*120) && !allParametersEstimated)
+        if (electrode->paramAveragingCount >= (sampleRate*120) && !allParametersEstimated[i])
         {
 
             if (SVDmethod) // starting the SVD Thread
             {
                 std::cout << "A total of " << detectedSpikesAllElectrodes.size() << "spikes have been detected and stored." << std::endl;
                 std::cout<<detectedSpikesAllElectrodes.size()<<" spikes objects stored"<<std::endl;
-                job.SVDsetdim(detectedSpikesAllElectrodes,false);
+                SVDjob Tjob;
+                Tjob.SVDsetdim(detectedSpikesAllElectrodes, false, i);
+                job.add(Tjob);
                 std::cout<<"job was created" << std::endl;
-                dictionaryThread.addSVDjob(job);
+                dictionaryThread.addSVDjob(job[i]);
                 SVDmethod = false;
             }
-            if(!allParametersEstimated)
+            if(!allParametersEstimated[i])
             {
 
-                if(dictionaryThread.J.reportDone)
+                if(dictionaryThread.J.reportDone && i == dictionaryThread.J.electrodeIndex)
                 {
+                    std::cout << "done with svd";
                     ProcessorGraph* gr = getProcessorGraph();
                     juce::Array<GenericProcessor*> p = gr->getListOfProcessors();
 
@@ -894,16 +924,10 @@ void ParameterEstimator::process(AudioSampleBuffer& buffer,
                     {
                         std::cout << "Could not find a the Spike Sorter." << std::endl;
                     }
+                    node->setParameter(3,i);
 
-                    CircularQueue* queue = new CircularQueue[electrodes.size()];
-                    node->circbuffer.clear();
 
-                    for ( int i = 0; i < electrodes.size(); i++ )
-                    {
-                        node->circbuffer.add((queue+i));
-                        node->circbuffer[i]->setsize(node->P);
-                    }
-                    std::cout<<"Parameter Estimator contacted and Circular Buffers set. Buffer size and electrode number is " << node->circbuffer[0]->getsize() << "  and   " << node->circbuffer.size() << std::endl;
+                    std::cout<<"Parameter Estimator contacted and Circular Buffers set. Buffer size and electrode number is " << node->se[i].sec[0].circbuffer.getsize() << std::endl;
 
                     Eigen::ArrayXf powers = Eigen::VectorXf::Zero(node->P).array();
                     double start = 1;
@@ -915,34 +939,41 @@ void ParameterEstimator::process(AudioSampleBuffer& buffer,
                     }
 
                     float powerIndex;
-                    for (int i = 0; i < node->P; i++)
+                    for (int k = 0; k < node->P; k++)
                     {
                         powerIndex = -1*i;
                         for (int j = 0; j < node->P; j++)
                         {
 
-                            if ( i == j )
-                                node->sigma(i,j) = getElectrodeNoiseVar(0);
+                            if ( k == j )
+                                node->se[i].sigma(k,j) = getElectrodeNoiseVar(0);
                             else
-                                node->sigma(i,j) = getElectrodeNoiseVar(0)*powers(std::abs(powerIndex));
+                                node->se[i].sigma(k,j) = getElectrodeNoiseVar(0)*powers(std::abs(powerIndex));
+
                             powerIndex++;
                         }
                     }
 
                     std::cout<< " ACF LAG in Spike Sorter is " << acfLag1 << " and the Var is " << getElectrodeNoiseVar(0) << "  "  << std::endl;
                     double startTime1 = Time::getMillisecondCounterHiRes();
-                    node->lambda = node->sigma.inverse();
+                    node->se[i].lambda = node->se[i].sigma.inverse();
                     double stopTime1 = Time::getMillisecondCounterHiRes();
                     Logger *log1 = Logger::getCurrentLogger();
-                    log1->writeToLog("Time for 40 x 40 inverse is = " + String(stopTime1 - startTime1));
-                    node->lambdaQR.compute(node->lambda);
-                    node->lambdaLLT.compute(node->lambda);
-                    node->logDeterminantOfLambda = node->lambdaQR.logAbsDeterminant();
-                    node->logPlusDetTermForNoiseLL = (-1*node->P)*LOG2PIBY2 + 0.5*node->logDeterminantOfLambda;
-                    std::cout<<"Determinant is = " << node->logDeterminantOfLambda << " and " << node->ReducedDictionary.col(0).size() << "x" << node->ReducedDictionary.row(0).size() << "//" << std::endl;
-                    node->setParameter(2,0);
-                    allParametersEstimated = true;
+                    log1->writeToLog("Time for 30 x 30 inverse is = " + String(stopTime1 - startTime1));
+                    node->se[i].lambdaQR.compute(node->se[i].lambda);
+                    node->se[i].logPlusDetTermForNoiseLL = (-1*node->P)*LOG2PIBY2 + 0.5*node->se[i].lambdaQR.logAbsDeterminant();
+                    std::cout<<"Determinant is = " << node->se[i].lambdaQR.logAbsDeterminant() << " and " << node->se[i].ReducedDictionary.col(0).size() << "x" << node->se[i].ReducedDictionary.row(0).size() << "//" << std::endl;
+                    node->setParameter(2,i);
+                    allParametersEstimated.setUnchecked(i,true);
+                    std::cout << " All parameters estimated for electrode " << i << "." << std::endl;
+                    bool test = true;
+                    for ( int k = 0; k < electrodes.size(); k++)
+                    {
+                        test = test && allParametersEstimated[k];
+                    }
+                    if (test)
                     node->allParametersEstimated = true;
+
                 }
             }
         }
@@ -951,6 +982,7 @@ void ParameterEstimator::process(AudioSampleBuffer& buffer,
 
         }
         electrode->lastBufferIndex = sampleIndex - nSamples;
+
 
 
     }

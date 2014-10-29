@@ -25,6 +25,8 @@
 #include "../../Resources/eigen-eigen-6b38706d90a9/Eigen/Dense"
 #include "../../Resources/eigen-eigen-6b38706d90a9/Eigen/QR"
 
+#define MAX_CHANNELS 4
+#define MAX_ELECTRODES 16
 //using namespace Eigen;
 //using namespace juce;
 
@@ -102,7 +104,7 @@ class CircularQueue
         ~CircularQueue() { }
         void setsize(int siz);
         void enqueue(float item);
-        void show(int index, Eigen::VectorXf& returnedX);
+        void show(int index, Eigen::Matrix<float,30,1>& returnedX);
         void dequeue();
         bool isBufferPlush(int minsize);
         int getsize();
@@ -114,11 +116,85 @@ class CircularQueue
 class SpikeSorter;
 class ParameterEstimator;
 
-class UpdateThread : juce::Thread
+class SortingElectrodeChannel
 {
-    UpdateThread(SpikeSorter* spikeSorter);
-    void run();
-    SpikeSorter* ss;
+    public:
+    juce::Array <Eigen::Matrix3f> phi;
+    juce::Array <Eigen::Matrix3f> lamclus;
+    juce::Array <Eigen::Matrix3f> lamclusinv;
+    juce::Array <Eigen::Matrix3f> R;
+    juce::Array <Eigen::Matrix3f> Rinv;
+    juce::Array<Eigen::Matrix<float, 30, 30>> Q;
+    juce::Array<float> detQ;
+    Eigen::MatrixXf muu0;
+    Eigen::MatrixXf muu;
+    CircularQueue circbuffer;
+    Eigen::Matrix<float, 30, 1> xwind; //remember, xwind is "of the moment", xwind lacks history
+    Eigen::Matrix<float, 30, 1> xwindloop;
+    Eigen::VectorXf xwindLonger;
+    Eigen::HouseholderQR<Eigen::MatrixXf> lambdaQR;
+    juce::Array<Eigen::HouseholderQR<Eigen::MatrixXf>> QQR;
+    juce::Array<Eigen::LLT<Eigen::Matrix<float,30,30>>> QLLT;
+    Eigen::VectorXf QLogAbsDeterminant;
+    Eigen::VectorXf cLL;
+};
+
+class SortingElectrode
+{
+    public:
+    Eigen::RowVectorXf nu;
+    Eigen::RowVectorXf kappa;
+    Eigen::Matrix<float, 30, 30> lambda;
+    Eigen::Matrix<float, 30, 30> sigma;
+    Eigen::Matrix<float, 30, 3> ReducedDictionary;
+    Eigen::Matrix<float, 3, 30> ReducedDictionaryTranspose;
+    Eigen::Matrix3f Qmat;
+    Eigen::VectorXf yhat;
+    Eigen::VectorXf mhat;
+    Eigen::MatrixXf Qhat;
+    unsigned int neuronCount;
+
+    // --------------- temporary variables
+
+    Eigen::Matrix3f RTLR;
+    Eigen::Matrix<float, 3, 30> RTL;
+    Eigen::Matrix<float, 30, 3> LR;
+    Eigen::Matrix3f Qmatinv;
+    Eigen::Matrix3f C;
+    Eigen::Matrix3f bracket;
+    Eigen::Matrix<float, MAX_CHANNELS, 1> sample;
+    Eigen::HouseholderQR<Eigen::MatrixXf> lambdaQR;
+    float detSigma;
+    bool flag;
+    // ---------------
+
+    double Hadj;
+    float logPlusDetTermForNoiseLL;
+    int idx;
+    float likelihoodThreshold;
+    bool suppress;
+    bool test;
+    Eigen::RowVectorXf tlastspike;
+    Eigen::RowVectorXf ltheta;
+    Eigen::RowVectorXf ngamma;
+    float threshold;
+    float totalSpikesFound;
+    int deltaT;
+    bool setLambda;
+    Eigen::VectorXf lthr;
+    Eigen::MatrixXf lon;
+    SortedSpikeObject currentSpike;
+    int currentIndex;
+    bool spikeDetected;
+    bool samplesBeingCollected;
+    float likelihoodNoSpike;
+    float maximumLikelihoodPerNeuron;
+    Eigen::RowVectorXf likelihoodPerNeuron;
+    double Hadjsum;
+    bool thingsHaveChanged;
+    uint8_t* spikeBuffer;
+
+    SortingElectrodeChannel sec[MAX_CHANNELS];
 };
 
 
@@ -130,80 +206,25 @@ public:
     SpikeSorter();
     ~SpikeSorter();
     bool checkIfLogIsInf(float  num, float den);
-
-    int P; //column span of the dictionary
+    int P;
     float alpha;
     float kappa0;
     float nu0;
     unsigned int K;
-    //Array<Array<float>> phi0;
-    Eigen::MatrixXf phi0;
+    Eigen::Matrix3f phi0;
     float apii;
     float bpii;
     float beta;
     float tau;
-    unsigned int Cmax;  //maximum possible number of neurons present
-    int curndx; //used to index current location in buffer
-    int lookahead; //functionally, it is the size of the buffer
+    unsigned int Cmax;
+    int curndx;
+    int lookahead;
     int range;
     float pii;
-    //Array <float> nu;
-    Eigen::RowVectorXf nu;
-    juce::Array <Eigen::MatrixXf> phi;
-    juce::Array <Eigen::MatrixXf> lamclus;
-    juce::Array <Eigen::MatrixXf> lamclusinv;
-    juce::Array <Eigen::MatrixXf> R;
-    juce::Array <Eigen::MatrixXf> Rinv;
-    Eigen::MatrixXf Qt;
-    Eigen::MatrixXf muu0;
-    Eigen::RowVectorXf kappa;
-    Eigen::MatrixXf muu;
-    Eigen::MatrixXf lambda;
-    double logDeterminantOfLambda;
-    Eigen::MatrixXf sigma;
-    juce::Array<Eigen::MatrixXf> Q;
-    //Eigen::MatrixXf Q;
-    Eigen::MatrixXf Qinv;
-    Eigen::MatrixXf ReducedDictionary; //This is A (PxK)
-    Eigen::MatrixXf ReducedDictionaryTranspose;
-    Eigen::MatrixXf Qmat;
-    Eigen::VectorXf yhat;
-    Eigen::VectorXf mhat;
-    Eigen::MatrixXf Qhat;
-    Eigen::VectorXf xwindLonger;
-    unsigned int neuronCount; // this is C in the code
-
-    double Hadj;
-    double logdetQ;
-    float logPlusDetTermForNoiseLL;
-    double logPlusDetTermForNewNeuronLL;
-    int idx; //this is Q in the second half
-    float likelihoodThreshold;
-
-    bool suppress;
-    bool test;
-    Eigen::RowVectorXf tlastspike;
-    Eigen::RowVectorXf ltheta;
-    Eigen::RowVectorXf ngamma;
-
-    float threshold;
-    float totalSpikesFound;
-
-
-    //Array <TwoDimMatrix> lamclusS;
-
     float suppresslikelihood;
-    int deltaT;
-
+    SortingElectrode se[MAX_ELECTRODES];
     int64 timestamp;
-
-    juce::Array <CircularQueue*> circbuffer;
-
-    Eigen::VectorXf xwind; //remember, xwind is "of the moment", xwind lacks history
-    Eigen::MatrixXf xRDmu;
-    Eigen::VectorXf xwindloop;
-
-    bool setLambda;
+    bool flag;
 
     bool isSource()
     {
@@ -217,10 +238,10 @@ public:
     }
 
     bool checkIfAllParametersEstimated;
-    void collectSamplesForSpikeObject(int electrodeIndex, float trigSample);
-    void addNewSampleAndLikelihoodsToCurrentSpikeObject(float sample, MidiBuffer &eventBuffer, int chan);
-    void PackageCurrentSortedSpikeIntoBuffer(MidiBuffer &eventBuffer1);
-    void updateAllSortingParameters();
+    void collectSamplesForSpikeObject(int electrodeIndex, int index);
+    void addNewSampleAndLikelihoodsToCurrentSpikeObject(Eigen::Matrix<float, 4, 1> sample, MidiBuffer &eventBuffer, int electrodeIndex, int channelCount);
+    void PackageCurrentSortedSpikeIntoBuffer(MidiBuffer &eventBuffer1, int electrodeIndex);
+    void updateAllSortingParameters(int electrodeIndex, int chan);
     void process(AudioSampleBuffer& buffer, MidiBuffer& events, int& nSamples);
     float getNextSample(int& chan);
 
@@ -230,13 +251,6 @@ public:
     bool disable();
     AudioProcessorEditor* createEditor();
     void updateSettings();
-
-    Eigen::HouseholderQR<Eigen::MatrixXf> lambdaQR;
-    Eigen::LLT<Eigen::MatrixXf> lambdaLLT;
-    juce::Array<Eigen::HouseholderQR<Eigen::MatrixXf>> QQR;
-    juce::Array<Eigen::LLT<Eigen::MatrixXf>> QLLT;
-    Eigen::VectorXf QLogAbsDeterminant;
-
     bool allParametersEstimated;
 
 private:
@@ -247,38 +261,16 @@ private:
     ParameterEstimator* node;
     unsigned long int sampleIndex;
     float masterSampleIndex;
-
-    bool paramsCopied;
-
-    SortedSpikeObject currentSpike;
-    int currentIndex;  // this is for keeping track of indices after threshold crossing
-
-    Eigen::VectorXf lthr;
-    Eigen::MatrixXf lon;
-
+    bool timeflag;
+    float timetaken;
+    float n;
     bool buffersArePlush;
-
-    bool spikeDetected;
-    bool samplesBeingCollected;
-
     int number;
     double startTime;
     double stopTime;
+    int downsamplingFactor;
 
-    float likelihoodNoSpike;
-    float maximumLikelihoodPerNeuron;
-    Eigen::RowVectorXf likelihoodPerNeuron;
-    Eigen::VectorXf cLL;
-    double Hadjsum;
-    bool thingsHaveChanged;
-
-
-
-    double Quad;
-
-    uint8_t* spikeBuffer;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SpikeSorter);
-
 };
 
 

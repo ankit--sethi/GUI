@@ -819,7 +819,7 @@ void WaveAxes::plotSpike(const SpikeObject& s, Graphics& g)
 
     // type corresponds to channel so we need to calculate the starting
     // sample based upon which channel is getting plotted
-    int sampIdx = 40*type; //spikeBuffer[0].nSamples * type; //
+    int sampIdx = 30*type; //spikeBuffer[0].nSamples * type; //
 
     int dSamples = 1;
 
@@ -858,7 +858,7 @@ void WaveAxes::plotSpike(const SortedSpikeObject& s, Graphics& g)
 
     // type corresponds to channel so we need to calculate the starting
     // sample based upon which channel is getting plotted
-    int sampIdx = 40*type; //spikeBuffer[0].nSamples * type; //
+    int sampIdx = 30*type; //spikeBuffer[0].nSamples * type; //
 
     int dSamples = 1;
 
@@ -973,7 +973,7 @@ bool WaveAxes::updateSpikeData(const SortedSpikeObject& s)
 
 bool WaveAxes::checkThreshold(const SpikeObject& s)
 {
-    int sampIdx = 40*type;
+    int sampIdx = 30*type;
 
     for (int i = 0; i < s.nSamples-1; i++)
     {
@@ -991,7 +991,7 @@ bool WaveAxes::checkThreshold(const SpikeObject& s)
 }
 bool WaveAxes::checkThreshold(const SortedSpikeObject& s)
 {
-    int sampIdx = 40*type;
+    int sampIdx = 30*type;
 
     for (int i = 0; i < s.nSamples-1; i++)
     {
@@ -1209,7 +1209,7 @@ bool ProjectionAxes::updateSpikeData(const SortedSpikeObject& s)
     calcWaveformPeakIdx(s, ampDim1, ampDim2, &idx1, &idx2);
 
     // add peaks to image
-    std::cout << "REACHED PROCESSSORTEDSPIKEOBJECT";
+    //std::cout << "REACHED PROCESSSORTEDSPIKEOBJECT";
 
     updateProjectionImage(s.data[idx1], s.data[idx2], *s.gain);
 

@@ -194,7 +194,7 @@ PCPlot* PCDisplay::addPCPlot(int numChannels, int electrodeNum, String name_)
 void PCDisplay::paint(Graphics& g)
 {
 
-    g.fillAll(Colours::black);
+    g.fillAll(Colours::yellow);
 
 }
 
@@ -222,7 +222,7 @@ void PCDisplay::resized()
             index = ++PlotIndex;
             numColumns = (int) jmax(w / pcPlots[i]->minWidth, 1.0f);
             width = jmin((float) w / (float) numColumns, (float) getWidth());
-            height = width * pcPlots[i]->aspectRatio;
+            height = width * pcPlots[i]->aspectRatio + 150;
 
             column = index % numColumns;
 
@@ -291,6 +291,10 @@ PCPlot::PCPlot(SortedSpikeCanvas *sdc, int elecNum, int dim, String name_) :
     }
 
     initAxes();
+    raster = new RasterPlot;
+    raster->setBounds(5,0.1*getHeight() ,10,10);
+    addAndMakeVisible(raster);
+
 }
 
 PCPlot::~PCPlot()
@@ -301,11 +305,13 @@ PCPlot::~PCPlot()
 void PCPlot::paint(Graphics& g)
 {
 
-    g.fillAll(Colours::white);
+    g.fillAll(Colours::green);
 
     g.setFont(font);
 
     g.drawText(name,10,0,200,20,Justification::left,false);
+
+    g.fillAll(Colours::green);
 
 }
 
@@ -313,7 +319,7 @@ void PCPlot::resized()
 {
 
     float width = getWidth()-10;
-    float height = getHeight()-25;
+    float height = getHeight() - 150 -25;
 
     float axesWidth, axesHeight;
 
@@ -351,8 +357,10 @@ void PCPlot::resized()
         pAxes[i]->setBounds(5 + (i%nPCCols) * axesWidth, 20 + (i/nPCCols) * axesHeight, axesWidth, axesHeight);
         pAxes[i]->projectionImage = pAxes[i]->projectionImage.rescaled(pAxes[i]->getWidth(),pAxes[i]->getHeight());
     }
-
-
+    raster->setBounds(5,axesHeight + 27 ,nPCCols*axesWidth,50);
+    raster->ProjectionImage = raster->ProjectionImage.rescaled(nPCCols*axesWidth, 50);
+    //raster->startTimeStampPixel = 0.025*raster->getWidth();
+    //raster->endTimeStampPixel = 0.975*raster->getWidth();
 }
 
 
@@ -385,7 +393,7 @@ void PCPlot::setLimitsOnAxes()
 {
     for (int i = 0; i < nPCAx; i++)
     {
-        pAxes[i]->setRange(2, 2);
+        pAxes[i]->setRange(20, 20);
     }
 }
 
@@ -403,8 +411,14 @@ void PCPlot::processSortedSpikeObject(const SortedSpikeObject& s)
 {
     //std::cout << "processing";
     for (int i = 0; i < nPCAx; i++)
-        pAxes[i]->updateSpikeData(s);
+        pAxes[i]->updateSpikeData(s, i);
 
+}
+
+void PCPlot::processRasterPlot(const RasterArray& r, int electrodeNum)
+{
+    raster->updateRasterData(r, electrodeNum);
+    raster->repaint();
 }
 
 void PCPlot::clear()
@@ -443,34 +457,19 @@ void PCPlot::buttonClicked(Button* button)
     setLimitsOnAxes();
 
 }
-
-PCAxes::PCAxes(int projectionNum, int dictlength) : GenericAxes(projectionNum), rangeX(2.0), rangeY(2.0), spikesReceivedSinceLastRedraw(0), svdCols(dictlength)
+RasterPlot::RasterPlot()
 {
-    projectionImage = Image(Image::RGB, 50, 50, true);
+    ProjectionImage = Image(Image::RGB, 50, 50, true);
 
     clear();
     repaint();
+
 }
 
-bool PCAxes::updateSpikeData(const SortedSpikeObject& s)
+void RasterPlot::situateRasterData(const RasterData& s, unsigned long startTimestamp, unsigned long endTimeStamp)
 {
-    if (!gotFirstSpike)
-    {
-        gotFirstSpike = true;
-    }
-
-    updatePrincipalComponents(s);
-
-    return true;
-}
-
-void  PCAxes::updatePrincipalComponents(const SortedSpikeObject& s)
-{
-    float h = getHeight();
-    float w = getWidth();
-    Graphics g(projectionImage);
-
-    g.setColour(Colours::white);
+    Graphics g(ProjectionImage);
+    g.setColour(Colours::darkblue);
 
     switch(s.neuronID)
     {
@@ -504,40 +503,220 @@ void  PCAxes::updatePrincipalComponents(const SortedSpikeObject& s)
     case 10:
         g.setColour(Colours::orange);
         break;
+    case 11:
+        g.setColour(Colours::palegreen);
+        break;
+    case 12:
+        g.setColour(Colours::peachpuff);
+        break;
+    case 13:
+        g.setColour(Colours::powderblue);
+        break;
+    case 14:
+        g.setColour(Colours::saddlebrown);
+        break;
+    case 15:
+        g.setColour(Colours::seashell);
+        break;
+    case 16:
+        g.setColour(Colours::slateblue);
+        break;
+    case 17:
+        g.setColour(Colours::steelblue);
+        break;
+    case 18:
+        g.setColour(Colours::tomato);
+        break;
+    case 19:
+        g.setColour(Colours::crimson);
+        break;
     }
 
-    int choose2[2] = {1,2};
-    int choose3[6] = {1,2,1,3,2,3};
-    int choose4[12] = {1,2,1,3,1,4,2,3,2,4,3,4};
-    int choose5[20] = {1,2,1,3,1,4,1,5,2,3,2,4,2,5,3,4,3,5,4,5};
+    if (s.timestamp < startTimestamp )
+    {
+    std::cout << "Error: Neuron detected before Ripple Start!" << std::endl;
+    }
+
+    float length = float(endTimeStamp - startTimestamp);
+
+    float ratio = float(s.timestamp - startTimestamp)/length;
+
+    g.drawLine(ratio*getWidth(), 0.9*getHeight(), ratio*getWidth(), 0.1*getHeight(), 1.0f);
+
+}
+
+bool RasterPlot::updateRasterData(const RasterArray& s, int electrodeNum)
+{
+    unsigned long int startTimestamp, stopTimestamp;
+
+    startTimestamp = s.startRipple;
+    stopTimestamp = s.stopRipple;
+
+    for(int i = 0; i < s.accruedRasterMarks.size(); i++)
+    {
+        if(s.accruedRasterMarks[i].electrodeNum == electrodeNum)
+        {
+            situateRasterData(s.accruedRasterMarks[i], startTimestamp, stopTimestamp);
+        }
+    }
+}
+
+void RasterPlot::clear()
+{
+    ProjectionImage.clear(Rectangle<int>(0, 0, ProjectionImage.getWidth(), ProjectionImage.getHeight()),
+                          Colours::white);
+
+    repaint();
+}
+void RasterPlot::paint(Graphics& g)
+{
+
+   g.setColour(Colours::pink);
+   g.fillRect(1,1,getWidth(), getHeight());
+
+   g.drawImage(ProjectionImage, 1, 1, getWidth() - 1, getHeight() - 1, 0, 0, getWidth(), getHeight());
+   g.setColour(Colours::black);
+   //g.drawLine(startTimeStampPixel, 0.9*getHeight(), endTimeStampPixel, 0.9*getHeight(), 2.0f);
+
+   // draw x axes
+}
+
+PCAxes::PCAxes(int projectionNum, int dictlength) : GenericAxes(projectionNum), rangeX(30.0), rangeY(30.0), spikesReceivedSinceLastRedraw(0), svdCols(dictlength)
+{
+    projectionImage = Image(Image::RGB, 50, 50, true);
+
+    clear();
+    repaint();
+}
+
+bool PCAxes::updateSpikeData(const SortedSpikeObject& s)
+{
+    if (!gotFirstSpike)
+    {
+        gotFirstSpike = true;
+    }
+
+    return true;
+}
+
+bool PCAxes::updateSpikeData(const SortedSpikeObject& s, int index)
+{
+    if (!gotFirstSpike)
+    {
+        gotFirstSpike = true;
+    }
+
+    updatePrincipalComponents(s, index);
+
+    return true;
+}
+
+void  PCAxes::updatePrincipalComponents(const SortedSpikeObject& s, int index)
+{
+    float h = getHeight();
+    float w = getWidth();
+
+    int choose2[2] = {0,1};
+    int choose3[6] = {0,1,0,2,1,2};
+    int choose4[12] = {0,1,0,2,0,3,1,2,1,3,2,3};
+    int choose5[20] = {0,1,0,2,0,3,0,4,1,2,1,3,1,4,2,3,2,4,3,4};
     float xf, yf;
     switch(svdCols)
     {
     case 2:
-        xf = float(s.principalComponent[choose2[2*(type - 1)]]-32768)/float(*s.gain)*1000.0f;
-        yf = float(s.principalComponent[choose2[2*(type - 1)]]-32768)/float(*s.gain)*1000.0f;
+        xf = float(s.principalComponent[choose2[2*(index)]]-32768)/float(*s.gain)*1000.0f;
+        yf = float(s.principalComponent[choose2[2*(index) + 1]]-32768)/float(*s.gain)*1000.0f;
         break;
     case 3:
-        xf = float(s.principalComponent[choose3[2*(type - 1)]]-32768)/float(*s.gain)*1000.0f;
-        yf = float(s.principalComponent[choose3[2*(type - 1)]]-32768)/float(*s.gain)*1000.0f;
+        xf = float(s.principalComponent[choose3[2*(index)]]-32768)/float(*s.gain)*1000.0f;
+        yf = float(s.principalComponent[choose3[2*(index) + 1]]-32768)/float(*s.gain)*1000.0f;
         break;
     case 4:
-        xf = float(s.principalComponent[choose4[2*(type - 1)]]-32768)/float(*s.gain)*1000.0f;
-        yf = float(s.principalComponent[choose4[2*(type - 1)]]-32768)/float(*s.gain)*1000.0f;
+        xf = float(s.principalComponent[choose4[2*(index)]]-32768)/float(*s.gain)*1000.0f;
+        yf = float(s.principalComponent[choose4[2*(index) + 1]]-32768)/float(*s.gain)*1000.0f;
         break;
     case 5:
-        xf = float(s.principalComponent[choose5[2*(type - 1)]]-32768)/float(*s.gain)*1000.0f;
-        yf = float(s.principalComponent[choose5[2*(type - 1)]]-32768)/float(*s.gain)*1000.0f;
+        xf = float(s.principalComponent[choose5[2*(index)]]-32768)/float(*s.gain)*1000.0f;
+        yf = float(s.principalComponent[choose5[2*(index) + 1]]-32768)/float(*s.gain)*1000.0f;
         break;
     }
 
 
 
 
-        xf = 0.5*w + 0.5*(w*xf/rangeX);
-        yf = 0.5*h + 0.5*(w*yf/rangeY);
+    xf = 0.5*w + 0.5*(w*xf/rangeX);
+    yf = 0.5*h + 0.5*(w*yf/rangeY);
+
+    Graphics g(projectionImage);
+
+    g.setColour(Colours::white);
+    g.fillAll();
+    //g.fillEllipse(xf,yf,4.0f,4.0f);
+
+    g.setColour(Colours::orange);
+
+    switch(s.neuronID)
+    {
+    case 1:
+        g.setColour(Colours::green);
+        break;
+    case 2:
+        g.setColour(Colours::red);
+        break;
+    case 3:
+        g.setColour(Colours::gold);
+        break;
+    case 4:
+        g.setColour(Colours::yellow);
+        break;
+    case 5:
+        g.setColour(Colours::violet);
+        break;
+    case 6:
+        g.setColour(Colours::blue);
+        break;
+    case 7:
+        g.setColour(Colours::darkorchid);
+        break;
+    case 8:
+        g.setColour(Colours::mintcream);
+        break;
+    case 9:
+        g.setColour(Colours::oldlace);
+        break;
+    case 10:
+        g.setColour(Colours::darkblue);
+        break;
+    case 11:
+        g.setColour(Colours::palegreen);
+        break;
+    case 12:
+        g.setColour(Colours::peachpuff);
+        break;
+    case 13:
+        g.setColour(Colours::powderblue);
+        break;
+    case 14:
+        g.setColour(Colours::saddlebrown);
+        break;
+    case 15:
+        g.setColour(Colours::seashell);
+        break;
+    case 16:
+        g.setColour(Colours::slateblue);
+        break;
+    case 17:
+        g.setColour(Colours::steelblue);
+        break;
+    case 18:
+        g.setColour(Colours::tomato);
+        break;
+    case 19:
+        g.setColour(Colours::crimson);
+        break;
+    }
         //std::cout << "XF / width IS" << xf  << "/" << w << " And YF / height is" << yf << "/" << h << std::endl;
-        g.fillEllipse(xf,yf,2.0f,1.0f);
+        g.fillEllipse(xf,yf,6.0f,6.0f);
         //g.fillEllipse(3,4,50.0f,50.0f);
 
 }
@@ -547,7 +726,7 @@ void PCAxes::drawGrid(Graphics& g)
     float h = getHeight();
     float w = getWidth();
 
-    g.setColour(Colours::pink);
+    g.setColour(Colours::blue);
 
     g.drawLine(0, h/2, w, h/2, 2.0f);
     g.drawLine(w/2, 0, w/2, h, 2.0f);
@@ -557,7 +736,7 @@ void PCAxes::drawGrid(Graphics& g)
 void PCAxes::paint(Graphics& g)
 {
 
-    g.setColour(Colours::black);
+    g.setColour(Colours::white);
     g.fillRect(1,1,getWidth() - 1 , getHeight() -1);
     //std::cout << "drawing again";
     g.drawImage(projectionImage, 1, 1, getWidth() - 1, getHeight() - 1, 0, 0, getWidth(), getHeight());
@@ -567,7 +746,7 @@ void PCAxes::paint(Graphics& g)
 void PCAxes::clear()
 {
     projectionImage.clear(Rectangle<int>(0, 0, projectionImage.getWidth(), projectionImage.getHeight()),
-                          Colours::black);
+                          Colours::white);
 
     repaint();
 }

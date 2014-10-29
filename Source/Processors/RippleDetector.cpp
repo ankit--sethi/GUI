@@ -428,10 +428,6 @@ void RippleDetector::process(AudioSampleBuffer& buffer,
 
                     double var = getNextSample(currentChannel);
 
-
-
-
-
                         if (electrode->paramAveragingCount < 30000) //averaging for 1 s to find noise mu and sigma (needs to be changed to that each electrode gets its own noise measurement)
                         {
                             electrode->paramAveragingCount++;
@@ -466,9 +462,6 @@ void RippleDetector::process(AudioSampleBuffer& buffer,
 
                                 electrode->partialSum += logLikelihood;
                                 electrode->partialSum = std::max(electrode->partialSum,float(0.0)); //CUSUM
-
-                                //std::cout << "PS is " << electrode->partialSum << "LL is " << logLikelihood << " np " << np << std::endl;
-
 
                                 if (electrode->partialSum > 0)//*(electrode->thresholds+chan)) //ripple detected
                                     //module for estimated min threshold to be added

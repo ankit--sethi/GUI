@@ -28,17 +28,27 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "Editors/SortedSpikeViewerEditor.h"
 #include "Editors/VisualizerEditor.h"
 #include "Visualization/SpikeObject.h"
+#include "Visualization/RippleObject.h"
 #include "ParameterEstimation.h"
 
 class DataViewport;
-/**
-This class serves as a template for creating new processors.
-If this were a real processor, this comment section would be used to
-describe the processor's function.
-@see GenericProcessor
-*/
-
 class PCPlot;
+
+struct RasterData
+{
+    int neuronID;
+    int electrodeNum;
+    unsigned long int timestamp;
+};
+
+struct RasterArray
+{
+    Array<RasterData> accruedRasterMarks;
+
+    unsigned long int startRipple;
+    unsigned long int stopRipple;
+    unsigned long int rippleID;
+};
 
 class SpikeSortingDisplay : public GenericProcessor
 {
@@ -80,9 +90,20 @@ public:
         Array<SortedSpikeObject> mostRecentSortedSpikes;
     };
 
+
     int svdCols;
 
     Array<Electrode> electrodes;
+
+    bool ripplePresent;
+
+    unsigned long int rippleTimestamp;
+    unsigned long int ripplesDisplayed;
+    bool pushRaster;
+    bool canDrawOne;
+    RippleObject newRipple;
+
+    RasterArray forRasterPlot;
 
     void addPCPlotForElectrode(PCPlot* sp, int i);
 
@@ -91,6 +112,8 @@ public:
     void setParameter(int parameterIndex, float newValue);
 
     void removePCPlots();
+
+
 
     int displayBufferSize;
     bool redraw;

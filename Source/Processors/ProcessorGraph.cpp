@@ -559,9 +559,9 @@ GenericProcessor* ProcessorGraph::createProcessorFromDescription(String& descrip
         }
         else if (subProcessorType.equalsIgnoreCase("Spike Sorter"))
         {
-                std::cout << "Creating a new ripple detector." << std::endl;
+                std::cout << "Creating a new spike sorter." << std::endl;
                 processor = new SpikeSorter();
-                //std::cout << "the spike sorter was created" << std::endl;
+                std::cout << "the spike sorter was created" << std::endl;
         }
         else if (subProcessorType.equalsIgnoreCase("Parameter Estimator"))
         {
