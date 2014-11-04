@@ -151,6 +151,8 @@ public:
 
     void addFrequencyBins(int &fRes);
 
+    void handleEvent(int eventType, MidiMessage& event, int sampleNum);
+
     //float normal_pdf(float x, float m, float s);
 
     //static const float inv_sqrt_2pi = 0.3989422804014327;
@@ -160,6 +162,30 @@ public:
 
     void saveCustomParametersToXml(XmlElement* parentElement);
     void loadCustomParametersFromXml();
+    struct Electrode
+    {
+
+        String name;
+
+        int numChannels;
+        int prePeakSamples, postPeakSamples;
+        int lastBufferIndex;
+
+        int* channels;
+        double* thresholds;
+        bool* isActive;
+
+        int fftValidCount;
+        double paramAveragingCount;
+        float mu, sigma;
+        double rippleAmplitude;
+        float amplitudeCount;
+        float sumOfSquaresOfDifferences;
+        float partialSum;
+        double maxAmplitudeFound;
+        Array<float> rippleStatus;
+    };
+    Array<Electrode*> electrodes;
 
 private:
 
@@ -205,6 +231,8 @@ private:
     Array<FrequencyBin*> fftBins;
 
 
+    int64 timestamp;
+
     bool useOverflowBuffer;
     bool binsActive;
     int binCount;
@@ -222,33 +250,11 @@ private:
 
 
 
-    struct Electrode
-    {
 
-        String name;
-
-        int numChannels;
-        int prePeakSamples, postPeakSamples;
-        int lastBufferIndex;
-
-        int* channels;
-        double* thresholds;
-        bool* isActive;
-
-        int fftValidCount;
-        double paramAveragingCount;
-        float mu, sigma;
-        double rippleAmplitude;
-        float amplitudeCount;
-        float sumOfSquaresOfDifferences;
-        float partialSum;
-        double maxAmplitudeFound;
-
-    };
 
     uint8_t* rippleBuffer;///[256];
 
-    Array<Electrode*> electrodes;
+
 
     // void createSpikeEvent(int& peakIndex,
     // 					  int& electrodeNumber,

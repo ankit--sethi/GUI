@@ -554,7 +554,7 @@ bool RasterPlot::updateRasterData(const RasterArray& s, int electrodeNum)
 
     for(int i = 0; i < s.accruedRasterMarks.size(); i++)
     {
-        if(s.accruedRasterMarks[i].electrodeNum == electrodeNum)
+        if(s.accruedRasterMarks[i].neuronID != -1)
         {
             situateRasterData(s.accruedRasterMarks[i], startTimestamp, stopTimestamp);
         }

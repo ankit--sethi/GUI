@@ -133,7 +133,7 @@ SpikeSorter::SpikeSorter()
     timetaken = 0;
     timeflag = false;
 
-    alpha = 1e-10;
+    alpha = 1e-7;
     kappa0 = 1;
     nu0 = 0.1;
     buffersArePlush = false;
@@ -685,7 +685,7 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
                             }
                             // After everything is done, remove most past sample, ie, xwind(0)
                         }
-                    sampleIndex += 4;
+                    sampleIndex += 1;
                     }
                 }
             }

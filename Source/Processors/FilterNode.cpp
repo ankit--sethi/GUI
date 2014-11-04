@@ -205,7 +205,7 @@ void FilterNode::setFilterParameters(double lowCut, double highCut, int chan)
 {
 
     Dsp::Params params;
-    params[0] = getSampleRate(); // sample rate
+    params[0] = 10000;//getSampleRate(); // sample rate
     params[1] = 2; // order
     params[2] = (highCut + lowCut)/2; // center frequency
     params[3] = highCut - lowCut; // bandwidth

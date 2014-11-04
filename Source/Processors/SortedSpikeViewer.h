@@ -30,6 +30,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "Visualization/SpikeObject.h"
 #include "Visualization/RippleObject.h"
 #include "ParameterEstimation.h"
+#include "RippleDetector.h"
 
 class DataViewport;
 class PCPlot;
@@ -47,7 +48,6 @@ struct RasterArray
 
     unsigned long int startRipple;
     unsigned long int stopRipple;
-    unsigned long int rippleID;
 };
 
 class SpikeSortingDisplay : public GenericProcessor
@@ -76,6 +76,7 @@ public:
     String getNameForElectrode(int i);
     int getNumElectrodes();
     void handleEvent(int eventType, MidiMessage& event, int samplePosition);
+    void getRippleDetectorPointer();
 
     struct Electrode
     {
@@ -88,6 +89,8 @@ public:
         int currentSpikeIndex;
 
         Array<SortedSpikeObject> mostRecentSortedSpikes;
+
+        RasterArray forRasterPlot;
     };
 
 
@@ -101,9 +104,8 @@ public:
     unsigned long int ripplesDisplayed;
     bool pushRaster;
     bool canDrawOne;
+    RippleDetector* node;
     RippleObject newRipple;
-
-    RasterArray forRasterPlot;
 
     void addPCPlotForElectrode(PCPlot* sp, int i);
 

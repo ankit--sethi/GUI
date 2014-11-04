@@ -870,9 +870,9 @@ void ParameterEstimator::process(AudioSampleBuffer& buffer,
 
                     if (electrode->paramAveragingCount < sampleRate*60 && electrode->paramAveragingCount >= sampleRate*30)
                     {
-                        sampleIndex += 4;
+                        sampleIndex += 1;
                         double var0 = getNextSample(currentChannel);
-                        sampleIndex -= 4;
+                        sampleIndex -= 1;
                         cssp = cssp + (var0*var - (electrode->mu)*(var0 + var) + electrode->musqrd);
                     }
                     if (electrode->paramAveragingCount == int(sampleRate*60))
@@ -883,7 +883,7 @@ void ParameterEstimator::process(AudioSampleBuffer& buffer,
                     }
                 }
             }
-            sampleIndex +=4;
+            sampleIndex +=1;
         }
         //this marks the ending of parameter detection -----------------------------
 

@@ -24,7 +24,6 @@ SpikeSortingDisplay::SpikeSortingDisplay()
 {
     redraw = false;
     ripplePresent = false;
-    forRasterPlot.rippleID = 0;
     ripplesDisplayed = 0;
 }
 
@@ -150,12 +149,35 @@ void SpikeSortingDisplay::setParameter(int param, float val)
 {
     redraw = true;
 }
+void SpikeSortingDisplay::getRippleDetectorPointer()
+{
+    ProcessorGraph* gr = getProcessorGraph();
+    juce::Array<GenericProcessor*> p = gr->getListOfProcessors();
+
+    bool flag = false;
+    for (int k=0;k<p.size();k++)
+    {
+        if (p[k]->getName() == "Parameter Estimator")
+        {
+            node = (RippleDetector*)p[k];
+            flag = true;
+            //std::cout << "Did find a the Ripple Detector." << std::endl;
+        }
+
+    }
+    if (!flag)
+    {
+        std::cout << "Could not find a the Ripple Detector." << std::endl;
+    }
+}
 
 void SpikeSortingDisplay::process(AudioSampleBuffer& buffer,
                                   MidiBuffer& events,
                                   int& nSamples)
 {
     checkForEvents(events);
+
+    getRippleDetectorPointer();
 
     if (redraw)
     {
@@ -173,21 +195,37 @@ void SpikeSortingDisplay::process(AudioSampleBuffer& buffer,
             }
 
         }
-        redraw = false;
-    }
 
-    if(canDrawOne)
-    {
         for (int i = 0; i < getNumElectrodes(); i++)
         {
 
-            Electrode& e = electrodes.getReference(i);
-            e.pcPlot->processRasterPlot(forRasterPlot, i);
-        }
-        canDrawOne = false;
-        forRasterPlot.accruedRasterMarks.clearQuick();
-    }
+            if (node->electrodes[i]->rippleStatus.size()%2 == 0 && node->electrodes[i]->rippleStatus.size() > 0)
+            {
 
+                Electrode& e = electrodes.getReference(i);
+                e.forRasterPlot.startRipple = node->electrodes[i]->rippleStatus[0];
+                e.forRasterPlot.stopRipple = node->electrodes[i]->rippleStatus[1];
+                node->setParameter(0,i); //removing
+
+                for (int j = 0; j < e.forRasterPlot.accruedRasterMarks.size(); j++)
+                {
+                    if(e.forRasterPlot.accruedRasterMarks[j].timestamp <= e.forRasterPlot.startRipple && e.forRasterPlot.accruedRasterMarks[j].timestamp >= e.forRasterPlot.stopRipple)
+                    {
+                        RasterData dummy;
+                        dummy.electrodeNum = -1;
+                        dummy.neuronID = -1;
+                        dummy.timestamp = -1;
+                        e.forRasterPlot.accruedRasterMarks.setUnchecked(j,dummy);
+                    }
+                }
+
+                e.pcPlot->processRasterPlot(e.forRasterPlot, i);
+                e.forRasterPlot.accruedRasterMarks.clearQuick();
+
+            }
+        }
+        redraw = false;
+    }
 }
 
 void SpikeSortingDisplay::handleEvent(int eventType, MidiMessage& event, int samplePosition)
@@ -210,33 +248,13 @@ void SpikeSortingDisplay::handleEvent(int eventType, MidiMessage& event, int sam
                 //std::cout << "buffer is valid";
                 int electrodeNum = newSpike.source;
 
-                if (ripplePresent)
-                {
-                    if(newSpike.timestamp > forRasterPlot.startRipple)
-                    {
-                    RasterData newMark;
-                    newMark.neuronID = newSpike.neuronID;
-                    newMark.timestamp = newSpike.timestamp;
-                    newMark.electrodeNum = electrodeNum;
-
-                    forRasterPlot.accruedRasterMarks.add(newMark);
-                    }
-                }
-                else
-                {
-                    if(newSpike.timestamp < forRasterPlot.stopRipple)
-                    {
-                    RasterData newMark;
-                    newMark.neuronID = newSpike.neuronID;
-                    newMark.timestamp = newSpike.timestamp;
-                    newMark.electrodeNum = electrodeNum;
-
-                    forRasterPlot.accruedRasterMarks.add(newMark);
-                    }
-                }
-
+                RasterData newMark;
+                newMark.neuronID = newSpike.neuronID;
+                newMark.timestamp = newSpike.timestamp;
+                newMark.electrodeNum = electrodeNum;
 
                 Electrode& e = electrodes.getReference(electrodeNum);
+                e.forRasterPlot.accruedRasterMarks.add(newMark);
 
                 if (e.currentSpikeIndex < displayBufferSize)
                 {
@@ -247,8 +265,9 @@ void SpikeSortingDisplay::handleEvent(int eventType, MidiMessage& event, int sam
             }
         }
     }
-    if (eventType == RIPPLE)
+  /*  if (eventType == RIPPLE)
     {
+        std::cout << "Found a ripple event" << std::endl;
         const uint8_t* dataptr = event.getRawData();
         int bufferSize = event.getRawDataSize();
 
@@ -276,5 +295,5 @@ void SpikeSortingDisplay::handleEvent(int eventType, MidiMessage& event, int sam
         }
 
         ripplePresent = true;
-    }
+    }*/
 }

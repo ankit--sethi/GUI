@@ -56,8 +56,6 @@ RippleDetector::RippleDetector()
 		electrodeCounter.add(0);
 	    }
     rippleBuffer = new uint8_t[MAX_RIPPLE_BUFFER_LEN];
-
-
 }
 
 RippleDetector::~RippleDetector()
@@ -198,15 +196,7 @@ bool RippleDetector::disable()
 }
 void RippleDetector::setParameter(int parameterIndex, float newValue)
 {
-    editor->updateParameterButtons(parameterIndex);
-
-    //Parameter& p =  parameters.getReference(parameterIndex);
-    //p.setValue(newValue, 0);
-
-    //threshold = newValue;
-
-    //std::cout << float(p[0]) << std::endl;
-    editor->updateParameterButtons(parameterIndex);
+    electrodes[newValue]->rippleStatus.removeRange(0,2);
 }
 
 bool RippleDetector::samplesAvailable(int& nSamples)
@@ -397,6 +387,18 @@ void RippleDetector::addFrequencyBins(int& fRes)
 
 }*/
 
+void RippleDetector::handleEvent(int eventType, MidiMessage& event, int sampleNum)
+{
+
+    if (eventType == TIMESTAMP)
+    {
+        const uint8* dataptr = event.getRawData();
+
+        memcpy(&timestamp, dataptr + 4, 8); // remember to skip first four bytes
+    }
+
+
+}
 void RippleDetector::process(AudioSampleBuffer& buffer,
                                MidiBuffer& events,
                                int& nSamples)
@@ -404,6 +406,7 @@ void RippleDetector::process(AudioSampleBuffer& buffer,
 
     Electrode* electrode;
     dataBuffer = buffer;
+    checkForEvents(events);
 
 
     for(int i = 0; i < electrodes.size(); i++)
@@ -412,18 +415,14 @@ void RippleDetector::process(AudioSampleBuffer& buffer,
         sampleIndex = electrode->lastBufferIndex -1;// subtract 1 to account for
         // increment at start of getNextSample()
 
-
        while (samplesAvailable(nSamples))
         {
             sampleIndex++;
-
-
 
             for(int chan=0; chan < 1 ; chan++) //detecting on 1 channel only currently. to be expanded. CUSUM -> multichannel/distributed CUSUM
             {
                 if (*(electrode->isActive+chan))
                 {
-
                     int currentChannel = *(electrode->channels+chan);
 
                     double var = getNextSample(currentChannel);
@@ -435,17 +434,12 @@ void RippleDetector::process(AudioSampleBuffer& buffer,
                             electrode->mu = electrode->mu + (delta/electrode->paramAveragingCount);
                             electrode->sumOfSquaresOfDifferences = electrode->sumOfSquaresOfDifferences + delta*(var - electrode->mu);
                         }
-
-
-                        if (electrode->paramAveragingCount >= 30000)  //Begin the hunt for ripples!
+                        else  //Begin the hunt for ripples!
                         {
-                            //
                             if (electrode->paramAveragingCount == 30000)
                             {
                                 electrode->sigma = sqrt(electrode->sumOfSquaresOfDifferences/electrode->paramAveragingCount);
-                                //std::cout << "sum of squares of differences = " << electrode->sumOfSquaresOfDifferences << std::endl;
                                 electrode->paramAveragingCount++;
-
                                 electrode->rippleAmplitude = electrode->mu + 5*electrode->sigma;
                                 std::cout << "Mean = " << electrode->mu << " Sigma is = " << electrode->sigma << std::endl;
 
@@ -456,23 +450,21 @@ void RippleDetector::process(AudioSampleBuffer& buffer,
 
                             logLikelihood = np;
 
-
                             if (ripplePresent == false)
                             {
 
                                 electrode->partialSum += logLikelihood;
                                 electrode->partialSum = std::max(electrode->partialSum,float(0.0)); //CUSUM
 
-                                if (electrode->partialSum > 0)//*(electrode->thresholds+chan)) //ripple detected
-                                    //module for estimated min threshold to be added
+                                if (electrode->partialSum > 5)//*(electrode->thresholds+chan)) //ripple detected
                                 {
 
                                     //std::cout << "PS is " << electrode->partialSum << "LL is " << logLikelihood << " sinp " << sinp << " np " << np << std::endl;
                                     electrode->partialSum = 0.0; //reset algorithm
-
+                                    std::cout << "Ripple Detected!" << std::endl;
                                     ripplePresent = true;
 
-
+                                        electrode->rippleStatus.add(timestamp + sampleIndex);
                                         RippleObject newRipple;
                                         newRipple.start = 1;
                                         newRipple.eventType = RIPPLE;
@@ -481,12 +473,8 @@ void RippleDetector::process(AudioSampleBuffer& buffer,
 
 
                                         addRippleEvent(&newRipple, events, sampleIndex);
-
-
                                 }
-
                                 break;
-
                             }
 
 
@@ -502,6 +490,7 @@ void RippleDetector::process(AudioSampleBuffer& buffer,
                                 {
                                     //std::cout << electrode->partialSum << std::endl;
                                     ripplePresent = false;
+                                    electrode->rippleStatus.add(timestamp + sampleIndex);
                                     electrode->partialSum = 0.0; //reset again
                                     RippleObject newRipple;
                                     newRipple.start = 0;
