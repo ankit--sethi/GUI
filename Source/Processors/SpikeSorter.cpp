@@ -387,7 +387,7 @@ void SpikeSorter::collectSamplesForSpikeObject(int electrodeIndex, int channelCo
     se[electrodeIndex].currentSpike.gain[i] = (int)(1.0f / channels[chan]->bitVolts)*1000;
     }
 
-    se[electrodeIndex].currentSpike.timestamp = masterSampleIndex + sampleIndex;
+    se[electrodeIndex].currentSpike.timestamp = timestamp + sampleIndex;
     se[electrodeIndex].lthr = Eigen::VectorXf::Zero(range + 1);
     se[electrodeIndex].lon = Eigen::MatrixXf::Zero(range + 1, se[electrodeIndex].neuronCount + 1);
 
@@ -537,7 +537,7 @@ void SpikeSorter::process(AudioSampleBuffer& buffer,
 {
     dataBuffer = buffer;
 
-    //checkForEvents(events);
+    checkForEvents(events);
 
     if(allParametersEstimated)
     {

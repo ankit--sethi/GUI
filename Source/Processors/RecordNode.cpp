@@ -739,7 +739,7 @@ void RecordNode::writeEventBuffer(MidiMessage& event, int samplePosition) //, in
 
 void RecordNode::handleEvent(int eventType, MidiMessage& event, int samplePosition)
 {
-    if (eventType == TTL)
+    if (eventType == TTL || eventType == RIPPLE)
     {
         writeEventBuffer(event, samplePosition);
     }

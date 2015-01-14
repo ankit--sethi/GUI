@@ -84,6 +84,8 @@ void SpikeSortingDisplay::updateSettings()
         std::cout << "SVDCols is now " << node->SVDCols <<  "  /  ";
     }
     // endof Set K
+
+    getRippleDetectorPointer();
 }
 
 bool SpikeSortingDisplay::enable()
@@ -157,11 +159,11 @@ void SpikeSortingDisplay::getRippleDetectorPointer()
     bool flag = false;
     for (int k=0;k<p.size();k++)
     {
-        if (p[k]->getName() == "Parameter Estimator")
+        if (p[k]->getName() == "Ripple Detector")
         {
             node = (RippleDetector*)p[k];
             flag = true;
-            //std::cout << "Did find a the Ripple Detector." << std::endl;
+            std::cout << "Sorted Spike Viewer did find the Ripple Detector." << std::endl;
         }
 
     }
@@ -177,13 +179,10 @@ void SpikeSortingDisplay::process(AudioSampleBuffer& buffer,
 {
     checkForEvents(events);
 
-    getRippleDetectorPointer();
-
     if (redraw)
     {
         for (int i = 0; i < getNumElectrodes(); i++)
         {
-
             Electrode& e = electrodes.getReference(i);
 
             // transfer buffered spikes to spike plot
@@ -199,17 +198,21 @@ void SpikeSortingDisplay::process(AudioSampleBuffer& buffer,
         for (int i = 0; i < getNumElectrodes(); i++)
         {
 
-            if (node->electrodes[i]->rippleStatus.size()%2 == 0 && node->electrodes[i]->rippleStatus.size() > 0)
+            node->setParameter(1,i);
+            //std::cout << node->plotRipple << " is the plotRipple" << std::endl;
+            if (node->plotRipple)
             {
 
                 Electrode& e = electrodes.getReference(i);
-                e.forRasterPlot.startRipple = node->electrodes[i]->rippleStatus[0];
-                e.forRasterPlot.stopRipple = node->electrodes[i]->rippleStatus[1];
+                e.forRasterPlot.startRipple = node->electrodes[i]->rippleStatus[1];
+                e.forRasterPlot.stopRipple = node->electrodes[i]->rippleStatus[2];
                 node->setParameter(0,i); //removing
 
                 for (int j = 0; j < e.forRasterPlot.accruedRasterMarks.size(); j++)
                 {
-                    if(e.forRasterPlot.accruedRasterMarks[j].timestamp <= e.forRasterPlot.startRipple && e.forRasterPlot.accruedRasterMarks[j].timestamp >= e.forRasterPlot.stopRipple)
+                    //cout << e.forRasterPlot.accruedRasterMarks[j].timestamp << " is the spike timestamp and " << e.forRasterPlot.startRipple << " is the ripple timestamp." <<std::endl;
+
+                    if(e.forRasterPlot.accruedRasterMarks[j].timestamp <= e.forRasterPlot.startRipple || e.forRasterPlot.accruedRasterMarks[j].timestamp >= e.forRasterPlot.stopRipple)
                     {
                         RasterData dummy;
                         dummy.electrodeNum = -1;
@@ -221,6 +224,8 @@ void SpikeSortingDisplay::process(AudioSampleBuffer& buffer,
 
                 e.pcPlot->processRasterPlot(e.forRasterPlot, i);
                 e.forRasterPlot.accruedRasterMarks.clearQuick();
+                //std::cout << "reached in plot ripple" << std::endl;
+                node->setParameter(0,i);
 
             }
         }

@@ -187,6 +187,8 @@ public:
     };
     Array<Electrode*> electrodes;
 
+    bool plotRipple;
+
 private:
 
     // private members and methods go here

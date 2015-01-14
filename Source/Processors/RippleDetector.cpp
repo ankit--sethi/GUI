@@ -56,7 +56,9 @@ RippleDetector::RippleDetector()
 		electrodeCounter.add(0);
 	    }
     rippleBuffer = new uint8_t[MAX_RIPPLE_BUFFER_LEN];
+    plotRipple = false;
 }
+
 
 RippleDetector::~RippleDetector()
 {
@@ -148,6 +150,7 @@ bool RippleDetector::addElectrode(int nChans)
     newElectrode->partialSum = 0;
     newElectrode->maxAmplitudeFound = -10;
     newElectrode->rippleAmplitude = 1400;
+    newElectrode->rippleStatus.add(0);
 
     for (int i = 0; i < nChans; i++)
     {
@@ -196,7 +199,21 @@ bool RippleDetector::disable()
 }
 void RippleDetector::setParameter(int parameterIndex, float newValue)
 {
-    electrodes[newValue]->rippleStatus.removeRange(0,2);
+    if (parameterIndex == 0)
+    {
+        electrodes[newValue]->rippleStatus.removeRange(1,2);
+        plotRipple = false;
+    }
+     //std::cout << "Reached somewhere == 1";
+    if (parameterIndex == 1)
+    {
+        //std::cout << "Reached ParameterIndex == 1";
+        if (electrodes[newValue]->rippleStatus.size() > 1 && (electrodes[newValue]->rippleStatus.size() - 1)%2 == 0 )
+        {
+            //std::cout << "Plot Ripple is true";
+            plotRipple = true;
+        }
+    }
 }
 
 bool RippleDetector::samplesAvailable(int& nSamples)
@@ -491,6 +508,7 @@ void RippleDetector::process(AudioSampleBuffer& buffer,
                                     //std::cout << electrode->partialSum << std::endl;
                                     ripplePresent = false;
                                     electrode->rippleStatus.add(timestamp + sampleIndex);
+                                    plotRipple = true;
                                     electrode->partialSum = 0.0; //reset again
                                     RippleObject newRipple;
                                     newRipple.start = 0;

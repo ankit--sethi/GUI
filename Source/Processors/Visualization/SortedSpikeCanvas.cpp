@@ -418,7 +418,7 @@ void PCPlot::processSortedSpikeObject(const SortedSpikeObject& s)
 void PCPlot::processRasterPlot(const RasterArray& r, int electrodeNum)
 {
     raster->updateRasterData(r, electrodeNum);
-    raster->repaint();
+    //raster->repaint();
 }
 
 void PCPlot::clear()
@@ -468,7 +468,10 @@ RasterPlot::RasterPlot()
 
 void RasterPlot::situateRasterData(const RasterData& s, unsigned long startTimestamp, unsigned long endTimeStamp)
 {
+
     Graphics g(ProjectionImage);
+    g.setColour(Colours::white);
+    g.fillAll();
     g.setColour(Colours::darkblue);
 
     switch(s.neuronID)
@@ -536,7 +539,7 @@ void RasterPlot::situateRasterData(const RasterData& s, unsigned long startTimes
     {
     std::cout << "Error: Neuron detected before Ripple Start!" << std::endl;
     }
-
+    std::cout << "start and end is " << startTimestamp << "   " << endTimeStamp << std::endl;
     float length = float(endTimeStamp - startTimestamp);
 
     float ratio = float(s.timestamp - startTimestamp)/length;
@@ -552,13 +555,17 @@ bool RasterPlot::updateRasterData(const RasterArray& s, int electrodeNum)
     startTimestamp = s.startRipple;
     stopTimestamp = s.stopRipple;
 
+    int count = 0;
+
     for(int i = 0; i < s.accruedRasterMarks.size(); i++)
     {
         if(s.accruedRasterMarks[i].neuronID != -1)
         {
+            count++;
             situateRasterData(s.accruedRasterMarks[i], startTimestamp, stopTimestamp);
         }
     }
+    std::cout << "In one plot, I entered " << count << " times." << std::endl;
 }
 
 void RasterPlot::clear()
